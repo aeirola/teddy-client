@@ -1,0 +1,16 @@
+package fi.iki.aeirola.teddyclientlib.models.request;
+
+/**
+ * Created by aeirola on 15.10.2014.
+ */
+public class NickListRequest {
+    public NickList nicklist = new NickList();
+
+    public static class NickList {
+        public String buffer;
+    }
+
+    public NickListRequest(String buffer) {
+        this.nicklist.buffer = buffer;
+    }
+}
