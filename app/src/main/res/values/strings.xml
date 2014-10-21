@@ -5,12 +5,8 @@
     <string name="title_window_detail">Window Detail</string>
     <string name="action_settings">Settings</string>
     <string name="pref_header_connection">Connection</string>
-    <string name="pref_description_enable_ssl">Enable SSL</string>
-    <string name="pref_title_enable_ssl">Enable SSL</string>
-    <string name="pref_title_hostname">Hostname</string>
-    <string name="pref_default_hostname">localhost</string>
-    <string name="pref_title_port">Port</string>
-    <string name="pref_default_port">8080</string>
+    <string name="pref_title_uri">Hostname</string>
+    <string name="pref_default_uri">ws://localhost:8080/endpoint</string>
     <string name="pref_title_password">Password</string>
     <string name="pref_title_allow_untrusted_ssl">Allow untrusted SSL</string>
     <string name="pref_description_allow_untrusted_ssl">Allow untrusted SSL</string>

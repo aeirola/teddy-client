@@ -1,1 +1,1 @@
-include ':app', ':Teddy Client Library'
+include ':app'

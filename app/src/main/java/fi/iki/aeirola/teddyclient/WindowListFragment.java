@@ -1,22 +1,21 @@
 package fi.iki.aeirola.teddyclient;
 
 import android.app.Activity;
-import android.os.Bundle;
 import android.app.ListFragment;
+import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-
 import java.util.List;
 
 import fi.iki.aeirola.teddyclient.model.TeddyModel;
-import fi.iki.aeirola.teddyclient.model.WindowModel;
-import fi.iki.aeirola.teddyclientlib.TeddyProtocolCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
 /**
@@ -35,31 +34,6 @@ public class WindowListFragment extends ListFragment {
      * activated item position. Only used on tablets.
      */
     private static final String STATE_ACTIVATED_POSITION = "activated_position";
-
-    /**
-     * The fragment's current callback object, which is notified of list item
-     * clicks.
-     */
-    private Callbacks mCallbacks = sDummyCallbacks;
-
-    /**
-     * The current activated item position. Only used on tablets.
-     */
-    private int mActivatedPosition = ListView.INVALID_POSITION;
-
-    /**
-     * A callback interface that all activities containing this fragment must
-     * implement. This mechanism allows activities to be notified of item
-     * selections.
-     */
-    public interface Callbacks {
-        /**
-         * Callback for when an item has been selected.
-         * @param id
-         */
-        public void onItemSelected(int id);
-    }
-
     /**
      * A dummy implementation of the {@link Callbacks} interface that does
      * nothing. Used only when this fragment is not attached to an activity.
@@ -69,6 +43,16 @@ public class WindowListFragment extends ListFragment {
         public void onItemSelected(int id) {
         }
     };
+    /**
+     * The fragment's current callback object, which is notified of list item
+     * clicks.
+     */
+    private Callbacks mCallbacks = sDummyCallbacks;
+    /**
+     * The current activated item position. Only used on tablets.
+     */
+    private int mActivatedPosition = ListView.INVALID_POSITION;
+    private TeddyModel teddyModel;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -77,20 +61,15 @@ public class WindowListFragment extends ListFragment {
     public WindowListFragment() {
     }
 
-    private TeddyModel teddyModel;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        this.teddyModel = TeddyModel.getInstance();
-        teddyModel.teddyProtocolClient.requestWindowList();
-
-        Log.v("WindowListFragment", "creating!");
-
-        TeddyProtocolCallbackHandler cbHandler = new TeddyProtocolCallbackHandler() {
+        Handler mHandler = new Handler(Looper.getMainLooper()) {
             @Override
-            public void onWindowList(List<Window> windowList) {
+            public void handleMessage(Message msg) {
+                List<Window> windowList = (List<Window>) msg.obj;
+
                 Log.v("WindowListFragment", "windows received!");
 
                 setListAdapter(new ArrayAdapter<Window>(
@@ -100,7 +79,9 @@ public class WindowListFragment extends ListFragment {
                         windowList));
             }
         };
-        teddyModel.teddyProtocolClient.registerCallbackHandler(cbHandler, "ui.windowListFragment");
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
+        this.teddyModel = TeddyModel.getInstance(mHandler, pref);
+        teddyModel.teddyProtocolClient.requestWindowList();
     }
 
     @Override
@@ -172,5 +153,19 @@ public class WindowListFragment extends ListFragment {
         }
 
         mActivatedPosition = position;
+    }
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callbacks {
+        /**
+         * Callback for when an item has been selected.
+         *
+         * @param id
+         */
+        public void onItemSelected(int id);
     }
 }
