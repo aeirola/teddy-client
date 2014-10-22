@@ -2,12 +2,7 @@ package fi.iki.aeirola.teddyclient;
 
 import android.app.Activity;
 import android.app.ListFragment;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -16,6 +11,7 @@ import android.widget.ListView;
 import java.util.List;
 
 import fi.iki.aeirola.teddyclient.model.TeddyModel;
+import fi.iki.aeirola.teddyclientlib.TeddyProtocolCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
 /**
@@ -40,7 +36,7 @@ public class WindowListFragment extends ListFragment {
      */
     private static Callbacks sDummyCallbacks = new Callbacks() {
         @Override
-        public void onItemSelected(int id) {
+        public void onItemSelected(long windowId) {
         }
     };
     /**
@@ -65,11 +61,10 @@ public class WindowListFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Handler mHandler = new Handler(Looper.getMainLooper()) {
+        this.teddyModel = TeddyModel.getInstance(this);
+        teddyModel.teddyProtocolClient.registerCallbackHandler(new TeddyProtocolCallbackHandler() {
             @Override
-            public void handleMessage(Message msg) {
-                List<Window> windowList = (List<Window>) msg.obj;
-
+            public void onWindowList(List<Window> windowList) {
                 Log.v("WindowListFragment", "windows received!");
 
                 setListAdapter(new ArrayAdapter<Window>(
@@ -78,9 +73,7 @@ public class WindowListFragment extends ListFragment {
                         android.R.id.text1,
                         windowList));
             }
-        };
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-        this.teddyModel = TeddyModel.getInstance(mHandler, pref);
+        }, "WindowListFragment");
         teddyModel.teddyProtocolClient.requestWindowList();
     }
 
@@ -119,9 +112,11 @@ public class WindowListFragment extends ListFragment {
     public void onListItemClick(ListView listView, View view, int position, long id) {
         super.onListItemClick(listView, view, position, id);
 
+        Window window = (Window) listView.getAdapter().getItem(position);
+
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(position);
+        mCallbacks.onItemSelected(window.id);
     }
 
     @Override
@@ -164,8 +159,8 @@ public class WindowListFragment extends ListFragment {
         /**
          * Callback for when an item has been selected.
          *
-         * @param id
+         * @param windowId
          */
-        public void onItemSelected(int id);
+        public void onItemSelected(long windowId);
     }
 }

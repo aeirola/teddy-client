@@ -1,14 +1,9 @@
 package fi.iki.aeirola.teddyclient;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.app.Activity;
-
-import android.transition.Slide;
-import android.transition.Transition;
-import android.view.Gravity;
 import android.view.MenuItem;
-import android.view.Window;
 
 
 /**
@@ -45,8 +40,8 @@ public class WindowDetailActivity extends Activity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putInt(WindowDetailFragment.ARG_WINDOW_ID,
-                    getIntent().getIntExtra(WindowDetailFragment.ARG_WINDOW_ID, 0));
+            arguments.putLong(WindowDetailFragment.ARG_WINDOW_ID,
+                    getIntent().getLongExtra(WindowDetailFragment.ARG_WINDOW_ID, 0L));
             WindowDetailFragment fragment = new WindowDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()

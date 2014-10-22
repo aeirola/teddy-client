@@ -2,16 +2,13 @@ package fi.iki.aeirola.teddyclient;
 
 import android.app.ListFragment;
 import android.os.Bundle;
-import android.app.Fragment;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.TextView;
 
+import java.util.List;
 
 import fi.iki.aeirola.teddyclient.model.TeddyModel;
-import fi.iki.aeirola.teddyclient.model.WindowModel;
+import fi.iki.aeirola.teddyclientlib.TeddyProtocolCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.models.Line;
 
 /**
  * A fragment representing a single Window detail screen.
@@ -29,7 +26,7 @@ public class WindowDetailFragment extends ListFragment {
     /**
      * The dummy content this fragment is presenting.
      */
-    private WindowModel mItem;
+    private TeddyModel teddyModel;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -42,11 +39,23 @@ public class WindowDetailFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        this.teddyModel = TeddyModel.getInstance(this);
+        teddyModel.teddyProtocolClient.registerCallbackHandler(new TeddyProtocolCallbackHandler() {
+            @Override
+            public void onLineList(List<Line> lineList) {
+                setListAdapter(new ArrayAdapter<Line>(
+                        getActivity(),
+                        android.R.layout.simple_list_item_activated_1,
+                        android.R.id.text1,
+                        lineList));
+            }
+        }, "WindowListFragment");
+
         if (getArguments().containsKey(ARG_WINDOW_ID)) {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
-
+            teddyModel.teddyProtocolClient.requestLineList(getArguments().getLong(ARG_WINDOW_ID));
         }
     }
 }

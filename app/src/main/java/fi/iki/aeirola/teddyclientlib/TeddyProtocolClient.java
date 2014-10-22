@@ -218,9 +218,8 @@ public class TeddyProtocolClient {
         }
     }
 
-    public void requestLineList(Window window) {
-        String bufferId = String.valueOf(window.id);
-        this.send(new HDataRequest("buffer:0x" + bufferId + "/own_lines/last_line(-10,0)/data"));
+    public void requestLineList(long windowId) {
+        this.send(new HDataRequest("buffer:0x" + windowId + "/own_lines/last_line(-10,0)/data"));
     }
 
     private void onLineList(CommonResponse hdata) {

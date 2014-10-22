@@ -1,13 +1,11 @@
 package fi.iki.aeirola.teddyclient;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.app.Activity;
-import android.transition.Slide;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.Window;
 
 
 /**
@@ -81,16 +79,16 @@ public class WindowListActivity extends Activity
     /**
      * Callback method from {@link WindowListFragment.Callbacks}
      * indicating that the item with the given ID was selected.
-     * @param id
+     * @param windowId
      */
     @Override
-    public void onItemSelected(int id) {
+    public void onItemSelected(long windowId) {
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
             // fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putInt(WindowDetailFragment.ARG_WINDOW_ID, id);
+            arguments.putLong(WindowDetailFragment.ARG_WINDOW_ID, windowId);
             WindowDetailFragment fragment = new WindowDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()
@@ -101,7 +99,7 @@ public class WindowListActivity extends Activity
             // In single-pane mode, simply start the detail activity
             // for the selected item ID.
             Intent detailIntent = new Intent(this, WindowDetailActivity.class);
-            detailIntent.putExtra(WindowDetailFragment.ARG_WINDOW_ID, id);
+            detailIntent.putExtra(WindowDetailFragment.ARG_WINDOW_ID, windowId);
             startActivity(detailIntent);
         }
     }
