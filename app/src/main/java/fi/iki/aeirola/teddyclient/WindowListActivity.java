@@ -7,6 +7,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import fi.iki.aeirola.teddyclientlib.models.Window;
+
 
 /**
  * An activity representing a list of Windows. This activity
@@ -15,11 +17,11 @@ import android.view.MenuItem;
  * lead to a {@link WindowDetailActivity} representing
  * item details. On tablets, the activity presents the list of items and
  * item details side-by-side using two vertical panes.
- * <p>
+ * <p/>
  * The activity makes heavy use of fragments. The list of items is a
  * {@link WindowListFragment} and the item details
  * (if present) is a {@link WindowDetailFragment}.
- * <p>
+ * <p/>
  * This activity also implements the required
  * {@link WindowListFragment.Callbacks} interface
  * to listen for item selections.
@@ -79,16 +81,17 @@ public class WindowListActivity extends Activity
     /**
      * Callback method from {@link WindowListFragment.Callbacks}
      * indicating that the item with the given ID was selected.
-     * @param windowId
+     *
+     * @param window
      */
     @Override
-    public void onItemSelected(long windowId) {
+    public void onItemSelected(Window window) {
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
             // fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putLong(WindowDetailFragment.ARG_WINDOW_ID, windowId);
+            arguments.putSerializable(WindowDetailFragment.ARG_WINDOW, window);
             WindowDetailFragment fragment = new WindowDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()
@@ -99,7 +102,7 @@ public class WindowListActivity extends Activity
             // In single-pane mode, simply start the detail activity
             // for the selected item ID.
             Intent detailIntent = new Intent(this, WindowDetailActivity.class);
-            detailIntent.putExtra(WindowDetailFragment.ARG_WINDOW_ID, windowId);
+            detailIntent.putExtra(WindowDetailFragment.ARG_WINDOW, window);
             startActivity(detailIntent);
         }
     }

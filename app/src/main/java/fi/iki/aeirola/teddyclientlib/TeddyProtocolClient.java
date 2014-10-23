@@ -240,6 +240,11 @@ public class TeddyProtocolClient {
         }
     }
 
+    public void sendInput(String windowName, String message) {
+        InputRequest input = new InputRequest(windowName, message);
+        this.send(input);
+    }
+
     public void sendQuit() {
         this.send(new InputRequest("core.weechat", "/quit"));
     }

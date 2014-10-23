@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import fi.iki.aeirola.teddyclientlib.models.request.InputRequest;
 import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.HDataResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.InfoResponse;
@@ -98,6 +99,19 @@ public class TestServer extends WebSocketServer {
             nick.name = "test_user";
 
             response.nicklist.add(nick);
+        } else if (request.input != null) {
+            InputRequest.Input input = request.input;
+            if (input.buffer != null && input.data != null) {
+                // Messages
+                response.hdata = new ArrayList<HDataResponse>();
+                HDataResponse hdata = new HDataResponse();
+                hdata.highlight = 0;
+                hdata.buffer = 1L;
+                hdata.date = "";
+                hdata.fromNick = "test_user";
+                hdata.message = input.data;
+                response.hdata.add(hdata);
+            }
         } else {
             Log.w(TAG, "Unknown request");
         }

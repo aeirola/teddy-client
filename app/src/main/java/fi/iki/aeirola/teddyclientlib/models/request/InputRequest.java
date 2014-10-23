@@ -6,13 +6,13 @@ package fi.iki.aeirola.teddyclientlib.models.request;
 public class InputRequest {
     public Input input = new Input();
 
-    public InputRequest(String path, String data) {
-        this.input.path = path;
+    public InputRequest(String buffer, String data) {
+        this.input.buffer = buffer;
         this.input.data = data;
     }
 
     public static class Input {
-        public String path;
+        public String buffer;
         public String data;
     }
 

@@ -19,7 +19,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  * also supports tablet devices by allowing list items to be given an
  * 'activated' state upon selection. This helps indicate which item is
  * currently being viewed in a {@link WindowDetailFragment}.
- * <p>
+ * <p/>
  * Activities containing this fragment MUST implement the {@link Callbacks}
  * interface.
  */
@@ -36,7 +36,7 @@ public class WindowListFragment extends ListFragment {
      */
     private static Callbacks sDummyCallbacks = new Callbacks() {
         @Override
-        public void onItemSelected(long windowId) {
+        public void onItemSelected(Window window) {
         }
     };
     /**
@@ -116,7 +116,7 @@ public class WindowListFragment extends ListFragment {
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(window.id);
+        mCallbacks.onItemSelected(window);
     }
 
     @Override
@@ -159,8 +159,8 @@ public class WindowListFragment extends ListFragment {
         /**
          * Callback for when an item has been selected.
          *
-         * @param windowId
+         * @param window
          */
-        public void onItemSelected(long windowId);
+        public void onItemSelected(Window window);
     }
 }

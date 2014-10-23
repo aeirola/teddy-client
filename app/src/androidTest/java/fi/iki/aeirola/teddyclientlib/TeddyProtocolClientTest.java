@@ -124,7 +124,7 @@ public class TeddyProtocolClientTest extends TestCase {
 
             @Override
             public void onWindowList(List<Window> windowList) {
-                teddyProtocol.requestLineList(windowList.get(0));
+                teddyProtocol.requestLineList(windowList.get(0).id);
             }
 
             @Override
@@ -157,6 +157,30 @@ public class TeddyProtocolClientTest extends TestCase {
         });
 
         assertTrue("First window item doesn't contain status", receivedNickList.get(0).name.contains("test_user"));
+    }
+
+    public void testInput() throws URISyntaxException, InterruptedException {
+        final String input = "hello to you too!";
+        this.runTest(new TeddyProtocolCallbackHandler() {
+            @Override
+            public void onLogin() {
+                teddyProtocol.requestWindowList();
+            }
+
+            @Override
+            public void onWindowList(List<Window> windowList) {
+                Window window = windowList.get(0);
+                teddyProtocol.sendInput(window.fullName, input);
+            }
+
+            @Override
+            public void onLineList(List<Line> lineList) {
+                receivedLineList = lineList;
+                endTest();
+            }
+        });
+
+        assertTrue("First window item doesn't contain status", receivedLineList.get(0).message.equals(input));
     }
 
 }

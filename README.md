@@ -7,7 +7,6 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 
 TODO
 ----
-- Text input
 - Server event handling
  - Use of Loaders and Cursors for data updates?
 - SSL support
