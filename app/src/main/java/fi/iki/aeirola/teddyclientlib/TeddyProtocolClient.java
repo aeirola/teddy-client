@@ -31,11 +31,13 @@ import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Nick;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 import fi.iki.aeirola.teddyclientlib.models.request.ChallengeRequest;
+import fi.iki.aeirola.teddyclientlib.models.request.DesyncRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.HDataRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.InfoRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.InputRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.LoginRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.NickListRequest;
+import fi.iki.aeirola.teddyclientlib.models.request.SyncRequest;
 import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.HDataType;
 
@@ -77,6 +79,14 @@ public class TeddyProtocolClient {
                 return;
             }
 
+            if (response.id != null) {
+                switch (response.id) {
+                    case "_buffer_line_added":
+                        TeddyProtocolClient.this.onLineList(response);
+                        return;
+                }
+            }
+
             if (response.challenge != null) {
                 TeddyProtocolClient.this.onChallenge((response.challenge));
             } else if (response.login != null) {
@@ -86,10 +96,6 @@ public class TeddyProtocolClient {
             } else if (response.info != null) {
                 if (response.info.version != null) {
                     TeddyProtocolClient.this.onVersion((response.info.version));
-                }
-            } else if (response.id != null) {
-                if (response.id.equals("_buffer_line_added")) {
-                    TeddyProtocolClient.this.onLineList(response);
                 }
             } else if (response.hdata != null) {
                 HDataType type = response.getType();
@@ -219,7 +225,15 @@ public class TeddyProtocolClient {
     }
 
     public void requestLineList(long windowId) {
-        this.send(new HDataRequest("buffer:0x" + windowId + "/own_lines/last_line(-10,0)/data"));
+        this.requestLineList(windowId, 10, 0);
+    }
+
+    public void requestLineList(long windowId, int size) {
+        this.requestLineList(windowId, size, 0);
+    }
+
+    public void requestLineList(long windowId, int size, int offset) {
+        this.send(new HDataRequest("buffer:0x" + windowId + "/own_lines/last_line(-" + size + "," + offset + ")/data"));
     }
 
     private void onLineList(CommonResponse hdata) {
@@ -244,6 +258,15 @@ public class TeddyProtocolClient {
         InputRequest input = new InputRequest(windowName, message);
         this.send(input);
     }
+
+    public void enableSync() {
+        this.send(new SyncRequest());
+    }
+
+    public void disableSync() {
+        this.send(new DesyncRequest());
+    }
+
 
     public void sendQuit() {
         this.send(new InputRequest("core.weechat", "/quit"));

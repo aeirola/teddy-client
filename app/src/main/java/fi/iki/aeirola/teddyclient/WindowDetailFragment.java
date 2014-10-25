@@ -11,6 +11,9 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import fi.iki.aeirola.teddyclient.model.TeddyModel;
@@ -30,6 +33,7 @@ public class WindowDetailFragment extends ListFragment {
      * represents.
      */
     public static final String ARG_WINDOW = "item_id";
+    private static final String TAG = "WindowDetailFragment";
 
     /**
      * The dummy content this fragment is presenting.
@@ -37,6 +41,7 @@ public class WindowDetailFragment extends ListFragment {
     private TeddyModel teddyModel;
     private Window window;
     private EditText mEditText;
+    private ArrayAdapter mListAdapter;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -50,24 +55,32 @@ public class WindowDetailFragment extends ListFragment {
         super.onCreate(savedInstanceState);
 
         this.teddyModel = TeddyModel.getInstance(this);
+
+        this.mListAdapter = new ArrayAdapter<Line>(
+                getActivity(),
+                android.R.layout.simple_list_item_activated_1,
+                android.R.id.text1,
+                new ArrayList<Line>());
+        setListAdapter(this.mListAdapter);
+
         teddyModel.teddyProtocolClient.registerCallbackHandler(new TeddyProtocolCallbackHandler() {
             @Override
             public void onLineList(List<Line> lineList) {
-                setListAdapter(new ArrayAdapter<Line>(
-                        getActivity(),
-                        android.R.layout.simple_list_item_activated_1,
-                        android.R.id.text1,
-                        lineList));
+                Iterator<Line> lineIterator = lineList.iterator();
+                while (lineIterator.hasNext()) {
+                    if (lineIterator.next().windowId != WindowDetailFragment.this.window.id) {
+                        lineIterator.remove();
+                    }
+                }
+                Collections.reverse(lineList);
+                mListAdapter.addAll(lineList);
+                WindowDetailFragment.this.scrollToBottom();
             }
         }, "WindowListFragment");
+    }
 
-        if (getArguments().containsKey(ARG_WINDOW)) {
-            // Load the dummy content specified by the fragment
-            // arguments. In a real-world scenario, use a Loader
-            // to load content from a content provider.
-            this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
-            teddyModel.teddyProtocolClient.requestLineList(this.window.id);
-        }
+    private void scrollToBottom() {
+        setSelection(mListAdapter.getCount() - 1);
     }
 
     @Override
@@ -96,6 +109,30 @@ public class WindowDetailFragment extends ListFragment {
             }
         });
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        teddyModel.teddyProtocolClient.enableSync();
+
+        if (getArguments().containsKey(ARG_WINDOW)) {
+            // Load the dummy content specified by the fragment
+            // arguments. In a real-world scenario, use a Loader
+            // to load content from a content provider.
+            this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
+            teddyModel.teddyProtocolClient.requestLineList(this.window.id, 20);
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        teddyModel.teddyProtocolClient.disableSync();
+    }
+
+
 
     private void sendMessage() {
         if (this.window == null) {

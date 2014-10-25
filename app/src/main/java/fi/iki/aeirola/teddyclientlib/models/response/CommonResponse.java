@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import fi.iki.aeirola.teddyclientlib.models.BaseMessage;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Nick;
 import fi.iki.aeirola.teddyclientlib.models.Window;
@@ -12,7 +11,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
 /**
  * Created by aeirola on 15.10.2014.
  */
-public class CommonResponse extends BaseMessage {
+public class CommonResponse extends BaseResponse {
 
     public String challenge;
     public Boolean login;
@@ -52,6 +51,7 @@ public class CommonResponse extends BaseMessage {
         List<Line> lineList = new ArrayList<Line>(this.hdata.size());
         for (HDataResponse hdata : this.hdata) {
             Line line = new Line();
+            line.windowId = hdata.buffer;
             line.date = new Date();
             line.sender = hdata.fromNick;
             line.message = hdata.message;

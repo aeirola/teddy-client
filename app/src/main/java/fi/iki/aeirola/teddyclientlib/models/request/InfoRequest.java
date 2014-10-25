@@ -3,7 +3,7 @@ package fi.iki.aeirola.teddyclientlib.models.request;
 /**
  * Created by aeirola on 15.10.2014.
  */
-public class InfoRequest {
+public class InfoRequest extends BaseRequest {
 
     public Info info = new Info();
 
