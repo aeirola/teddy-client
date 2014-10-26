@@ -8,7 +8,8 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 TODO
 ----
 - Improve line rendering
- - Filter control codes from input
+ - Filter ANSI escape codes from input
+  - Generate android spans from them
  - Show nick and timestamp
  - TextView_autoLink
 - Improved server event handling
@@ -24,8 +25,13 @@ TODO
  - Do network requests and JSON (de)serialization there
  - Communication using Handlers?
 - Connection handling
+ - Timeout detection
+  - No ping in 15 sec
  - Reconnection
+  - On sending command
+  - On disconnect/ping-timeout when in sync mode
  - Disconnection
+  - On inactivity (~5min)
 
 ----- Release? -----
 

@@ -23,7 +23,7 @@ public class TeddyProtocolClientTest extends TestCase {
 
     private CountDownLatch testLatch;
     private ModalLooper modal;
-    private TeddyProtocolClient teddyProtocol;
+    private TeddyClient teddyProtocol;
 
     private String receivedVersion;
     private List<Window> receivedWindowList;
@@ -47,8 +47,8 @@ public class TeddyProtocolClientTest extends TestCase {
         this.server.stop(TIMEOUT);
     }
 
-    protected void runTest(TeddyProtocolCallbackHandler callbackHandler) throws InterruptedException {
-        teddyProtocol = new TeddyProtocolClient(this.uri, "s3cr3t");
+    protected void runTest(TeddyCallbackHandler callbackHandler) throws InterruptedException {
+        teddyProtocol = new TeddyClient(this.uri, "s3cr3t");
         teddyProtocol.registerCallbackHandler(callbackHandler, "testHandler");
 
         teddyProtocol.connect();
@@ -66,7 +66,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testConnectToServer() throws InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onConnect() {
                 TeddyProtocolClientTest.this.endTest();
@@ -75,7 +75,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testLoginToServer() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 TeddyProtocolClientTest.this.endTest();
@@ -84,7 +84,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testVersion() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 teddyProtocol.requestVersion();
@@ -100,7 +100,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testWindows() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 teddyProtocol.requestWindowList();
@@ -116,7 +116,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testLines() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 teddyProtocol.requestWindowList();
@@ -138,7 +138,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     public void testNickList() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 teddyProtocol.requestWindowList();
@@ -161,7 +161,7 @@ public class TeddyProtocolClientTest extends TestCase {
 
     public void testInput() throws URISyntaxException, InterruptedException {
         final String input = "hello to you too!";
-        this.runTest(new TeddyProtocolCallbackHandler() {
+        this.runTest(new TeddyCallbackHandler() {
             @Override
             public void onLogin() {
                 teddyProtocol.requestWindowList();

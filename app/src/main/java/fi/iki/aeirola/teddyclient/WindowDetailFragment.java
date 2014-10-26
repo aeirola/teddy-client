@@ -16,8 +16,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import fi.iki.aeirola.teddyclient.model.TeddyModel;
-import fi.iki.aeirola.teddyclientlib.TeddyProtocolCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
@@ -38,7 +38,7 @@ public class WindowDetailFragment extends ListFragment {
     /**
      * The dummy content this fragment is presenting.
      */
-    private TeddyModel teddyModel;
+    private TeddyClient mTeddyClient;
     private Window window;
     private EditText mEditText;
     private ArrayAdapter mListAdapter;
@@ -54,8 +54,8 @@ public class WindowDetailFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        this.teddyModel = TeddyModel.getInstance(this);
-
+        this.mTeddyClient = TeddyClient.getInstance(getActivity());
+        this.mTeddyClient.connect();
         this.mListAdapter = new ArrayAdapter<Line>(
                 getActivity(),
                 android.R.layout.simple_list_item_activated_1,
@@ -63,7 +63,7 @@ public class WindowDetailFragment extends ListFragment {
                 new ArrayList<Line>());
         setListAdapter(this.mListAdapter);
 
-        teddyModel.teddyProtocolClient.registerCallbackHandler(new TeddyProtocolCallbackHandler() {
+        mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
             public void onLineList(List<Line> lineList) {
                 Iterator<Line> lineIterator = lineList.iterator();
@@ -114,14 +114,14 @@ public class WindowDetailFragment extends ListFragment {
     public void onStart() {
         super.onStart();
 
-        teddyModel.teddyProtocolClient.enableSync();
+        mTeddyClient.enableSync();
 
         if (getArguments().containsKey(ARG_WINDOW)) {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
             this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
-            teddyModel.teddyProtocolClient.requestLineList(this.window.id, 20);
+            mTeddyClient.requestLineList(this.window.id, 20);
         }
     }
 
@@ -129,7 +129,7 @@ public class WindowDetailFragment extends ListFragment {
     public void onStop() {
         super.onStop();
 
-        teddyModel.teddyProtocolClient.disableSync();
+        mTeddyClient.disableSync();
     }
 
 
@@ -139,7 +139,7 @@ public class WindowDetailFragment extends ListFragment {
             return;
         }
         String message = mEditText.getText().toString();
-        this.teddyModel.teddyProtocolClient.sendInput(window.fullName, message);
+        this.mTeddyClient.sendInput(window.fullName, message);
         mEditText.setText("");
     }
 }

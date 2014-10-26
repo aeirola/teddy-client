@@ -10,8 +10,8 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import fi.iki.aeirola.teddyclient.model.TeddyModel;
-import fi.iki.aeirola.teddyclientlib.TeddyProtocolCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
 /**
@@ -48,7 +48,7 @@ public class WindowListFragment extends ListFragment {
      * The current activated item position. Only used on tablets.
      */
     private int mActivatedPosition = ListView.INVALID_POSITION;
-    private TeddyModel teddyModel;
+    private TeddyClient mTeddyClient;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -61,8 +61,9 @@ public class WindowListFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        this.teddyModel = TeddyModel.getInstance(this);
-        teddyModel.teddyProtocolClient.registerCallbackHandler(new TeddyProtocolCallbackHandler() {
+        mTeddyClient = TeddyClient.getInstance(getActivity());
+        mTeddyClient.connect();
+        mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
             public void onWindowList(List<Window> windowList) {
                 Log.v("WindowListFragment", "windows received!");
@@ -74,7 +75,7 @@ public class WindowListFragment extends ListFragment {
                         windowList));
             }
         }, "WindowListFragment");
-        teddyModel.teddyProtocolClient.requestWindowList();
+        mTeddyClient.requestWindowList();
     }
 
     @Override

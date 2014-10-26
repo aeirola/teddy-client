@@ -1,5 +1,8 @@
 package fi.iki.aeirola.teddyclientlib;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
@@ -27,6 +30,7 @@ import de.tavendo.autobahn.WebSocketConnection;
 import de.tavendo.autobahn.WebSocketConnectionHandler;
 import de.tavendo.autobahn.WebSocketException;
 import de.tavendo.autobahn.WebSocketOptions;
+import fi.iki.aeirola.teddyclient.SettingsActivity;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Nick;
 import fi.iki.aeirola.teddyclientlib.models.Window;
@@ -44,16 +48,16 @@ import fi.iki.aeirola.teddyclientlib.models.response.HDataType;
 /**
  * Created by aeirola on 14.10.2014.
  */
-public class TeddyProtocolClient {
+public class TeddyClient {
     private static final String TAG = "TeddyProtocolClient";
     private final WebSocketConnectionHandler mConnectionHandler = new WebSocketConnectionHandler() {
 
         @Override
         public void onOpen() {
             Log.d(TAG, "Connected!");
-            TeddyProtocolClient.this.sendChallenge();
+            TeddyClient.this.sendChallenge();
 
-            for (TeddyProtocolCallbackHandler callbackHandler : TeddyProtocolClient.this.callbackHandlers.values()) {
+            for (TeddyCallbackHandler callbackHandler : TeddyClient.this.callbackHandlers.values()) {
                 callbackHandler.onConnect();
             }
         }
@@ -62,7 +66,7 @@ public class TeddyProtocolClient {
         public void onClose(int code, String reason) {
             Log.d(TAG, "Closed!" + code + reason);
 
-            for (TeddyProtocolCallbackHandler callbackHandler : TeddyProtocolClient.this.callbackHandlers.values()) {
+            for (TeddyCallbackHandler callbackHandler : TeddyClient.this.callbackHandlers.values()) {
                 callbackHandler.onClose();
             }
         }
@@ -71,9 +75,9 @@ public class TeddyProtocolClient {
         public void onTextMessage(String payload) {
             Log.v(TAG, "Received: " + payload);
 
-            CommonResponse response = null;
+            CommonResponse response;
             try {
-                response = TeddyProtocolClient.this.mObjectMapper.readValue(payload, CommonResponse.class);
+                response = TeddyClient.this.mObjectMapper.readValue(payload, CommonResponse.class);
             } catch (IOException e) {
                 Log.e(TAG, "JSON parsing failed", e);
                 return;
@@ -82,20 +86,20 @@ public class TeddyProtocolClient {
             if (response.id != null) {
                 switch (response.id) {
                     case "_buffer_line_added":
-                        TeddyProtocolClient.this.onLineList(response);
+                        TeddyClient.this.onLineList(response);
                         return;
                 }
             }
 
             if (response.challenge != null) {
-                TeddyProtocolClient.this.onChallenge((response.challenge));
+                TeddyClient.this.onChallenge((response.challenge));
             } else if (response.login != null) {
                 if (response.login) {
-                    TeddyProtocolClient.this.onLogin();
+                    TeddyClient.this.onLogin();
                 }
             } else if (response.info != null) {
                 if (response.info.version != null) {
-                    TeddyProtocolClient.this.onVersion((response.info.version));
+                    TeddyClient.this.onVersion((response.info.version));
                 }
             } else if (response.hdata != null) {
                 HDataType type = response.getType();
@@ -105,34 +109,35 @@ public class TeddyProtocolClient {
                 }
                 switch (type) {
                     case WINDOW:
-                        TeddyProtocolClient.this.onWindowList(response);
+                        TeddyClient.this.onWindowList(response);
                         break;
                     case LINE:
-                        TeddyProtocolClient.this.onLineList(response);
+                        TeddyClient.this.onLineList(response);
                         break;
                     default:
                         Log.w(TAG, "HData not identified " + type);
 
                 }
             } else if (response.nicklist != null) {
-                TeddyProtocolClient.this.onNickList(response);
+                TeddyClient.this.onNickList(response);
             } else {
-                TeddyProtocolClient.this.onPing();
+                TeddyClient.this.onPing();
             }
         }
     };
+    private static TeddyClient instance;
     private final WebSocket mConnection;
     private final WebSocketOptions mConnectionOptions;
     private final ObjectMapper mObjectMapper = new ObjectMapper();
-    private final Queue<Object> messageQueue = new ArrayDeque<Object>();
-    private final Map<String, TeddyProtocolCallbackHandler> callbackHandlers = new HashMap<String, TeddyProtocolCallbackHandler>();
+    private final Queue<Object> messageQueue = new ArrayDeque<>();
+    private final Map<String, TeddyCallbackHandler> callbackHandlers = new HashMap<>();
     private String uri;
     private String password;
     private String clientChallengeString;
     private String serverChallengeString;
     private boolean loggedIn = false;
 
-    public TeddyProtocolClient(String uri, String password) {
+    public TeddyClient(String uri, String password) {
         this.mConnection = new WebSocketConnection();
         this.mConnectionOptions = new WebSocketOptions();
         this.mConnectionOptions.setReceiveTextMessagesRaw(false);
@@ -146,6 +151,21 @@ public class TeddyProtocolClient {
 
         this.uri = uri;
         this.password = password;
+    }
+
+    private TeddyClient(SharedPreferences sharedPref) {
+        this(sharedPref.getString(SettingsActivity.KEY_PREF_URI, ""),
+                sharedPref.getString(SettingsActivity.KEY_PREF_PASSWORD, ""));
+    }
+
+    public static TeddyClient getInstance(Context context) {
+        if (instance == null) {
+            Log.v(TAG, "Creating new instance of model");
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            instance = new TeddyClient(pref);
+        }
+
+        return instance;
     }
 
     public void connect() {
@@ -190,7 +210,7 @@ public class TeddyProtocolClient {
             this.send(message);
         }
 
-        for (TeddyProtocolCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onLogin();
         }
     }
@@ -202,7 +222,7 @@ public class TeddyProtocolClient {
 
     public void onVersion(String version) {
         Log.d(TAG, "Version received: " + version);
-        for (TeddyProtocolCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onVersion(version);
         }
     }
@@ -219,7 +239,7 @@ public class TeddyProtocolClient {
     private void onWindowList(CommonResponse hdata) {
         Log.d(TAG, "Received window list");
         List<Window> windowList = hdata.toWindowList();
-        for (TeddyProtocolCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onWindowList(windowList);
         }
     }
@@ -238,7 +258,7 @@ public class TeddyProtocolClient {
 
     private void onLineList(CommonResponse hdata) {
         List<Line> lineList = hdata.toLineList();
-        for (TeddyProtocolCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onLineList(lineList);
         }
     }
@@ -249,7 +269,7 @@ public class TeddyProtocolClient {
 
     private void onNickList(CommonResponse nicklist) {
         List<Nick> nickList = nicklist.toNickList();
-        for (TeddyProtocolCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onNickList(nickList);
         }
     }
@@ -267,12 +287,11 @@ public class TeddyProtocolClient {
         this.send(new DesyncRequest());
     }
 
-
     public void sendQuit() {
         this.send(new InputRequest("core.weechat", "/quit"));
     }
 
-    public void registerCallbackHandler(TeddyProtocolCallbackHandler callbackHandler, String handlerKey) {
+    public void registerCallbackHandler(TeddyCallbackHandler callbackHandler, String handlerKey) {
         this.callbackHandlers.put(handlerKey, callbackHandler);
     }
 
