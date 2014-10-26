@@ -2,6 +2,7 @@ package fi.iki.aeirola.teddyclient;
 
 import android.app.ListFragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -114,14 +115,15 @@ public class WindowDetailFragment extends ListFragment {
     public void onStart() {
         super.onStart();
 
-        mTeddyClient.enableSync();
-
         if (getArguments().containsKey(ARG_WINDOW)) {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
             this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
-            mTeddyClient.requestLineList(this.window.id, 20);
+            mTeddyClient.requestLineList(window.id, 20);
+            mTeddyClient.enableSync();
+        } else {
+            Log.w(TAG, "Window argument not found!");
         }
     }
 

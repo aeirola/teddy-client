@@ -24,14 +24,13 @@ TODO
  - Loaders would do this
  - Do network requests and JSON (de)serialization there
  - Communication using Handlers?
-- Connection handling
+- Improve connection handling
  - Timeout detection
   - No ping in 15 sec
- - Reconnection
-  - On sending command
-  - On disconnect/ping-timeout when in sync mode
  - Disconnection
   - On inactivity (~5min)
+ - Network state detection
+ - Line list resync on reconnect
 
 ----- Release? -----
 

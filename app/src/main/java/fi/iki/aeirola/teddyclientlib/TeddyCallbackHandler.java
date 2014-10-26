@@ -14,10 +14,10 @@ public abstract class TeddyCallbackHandler {
     public void onLogin() {
     }
 
-    public void onVersion(String version) {
+    public void onDisconnect() {
     }
 
-    public void onClose() {
+    public void onVersion(String version) {
     }
 
     public void onWindowList(List<Window> windowList) {

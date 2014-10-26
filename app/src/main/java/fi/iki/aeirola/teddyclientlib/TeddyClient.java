@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
@@ -60,7 +62,8 @@ public class TeddyClient {
     private String password;
     private String clientChallengeString;
     private String serverChallengeString;
-    private boolean loggedIn = false;
+    private State connectionState = State.DISCONNECTED;
+    private SyncState syncState = SyncState.DISABLED;
 
     protected TeddyClient(String uri, String password) {
         this.mConnection = new WebSocketConnection();
@@ -74,7 +77,7 @@ public class TeddyClient {
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        this.mConnectionHandler = new TeddyConnectionHandler(this, mObjectMapper);
+        this.mConnectionHandler = new TeddyEventHandler(this, mObjectMapper);
 
         this.uri = uri;
         this.password = password;
@@ -96,8 +99,13 @@ public class TeddyClient {
     }
 
     public void connect() {
+        if (this.connectionState == State.CONNECTING || this.mConnection.isConnected()) {
+            return;
+        }
+
         try {
             Log.d(TAG, "Connecting");
+            this.connectionState = State.CONNECTING;
             this.mConnection.connect(this.uri, this.mConnectionHandler, this.mConnectionOptions);
         } catch (WebSocketException e) {
             Log.e(TAG, "Connection failed", e);
@@ -106,6 +114,7 @@ public class TeddyClient {
 
     protected void onConnect() {
         Log.d(TAG, "Connected");
+        this.connectionState = State.CONNECTED;
         sendChallenge();
 
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
@@ -114,14 +123,30 @@ public class TeddyClient {
     }
 
     public void disconnect() {
-        Log.d(TAG, "Disonnecting");
-        this.mConnection.disconnect();
+        if (!this.mConnection.isConnected()) {
+            Log.d(TAG, "Already disconnected");
+        } else {
+            Log.d(TAG, "Disconnecting");
+            this.mConnection.disconnect();
+        }
     }
 
     protected void onDisconnect() {
         Log.d(TAG, "Disconnected");
+        this.connectionState = State.DISCONNECTED;
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
-            callbackHandler.onClose();
+            callbackHandler.onDisconnect();
+        }
+
+        if (syncState == SyncState.ENABLED) {
+            // Automatic reconnect after 1s if we are syncing
+            new Timer().schedule(
+                    new TimerTask() {
+                        @Override
+                        public void run() {
+                            connect();
+                        }
+                    }, 1000);
         }
     }
 
@@ -146,11 +171,16 @@ public class TeddyClient {
 
     protected void onLogin() {
         Log.i(TAG, "Logged in!");
-        this.loggedIn = true;
+        this.connectionState = State.LOGGED_IN;
         // Send queued messages
         Object message;
         while ((message = this.messageQueue.poll()) != null) {
             this.send(message);
+        }
+
+        // Return to previous sync state
+        if (syncState == SyncState.ENABLED) {
+            this.enableSync();
         }
 
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
@@ -159,7 +189,7 @@ public class TeddyClient {
     }
 
     public void requestVersion() {
-        Log.d(TAG, "Require version");
+        Log.d(TAG, "Requesting version");
         this.send(new InfoRequest("version"));
     }
 
@@ -223,11 +253,13 @@ public class TeddyClient {
     }
 
     public void enableSync() {
+        this.syncState = SyncState.ENABLED;
         this.send(new SyncRequest());
     }
 
     public void disableSync() {
         this.send(new DesyncRequest());
+        this.syncState = SyncState.DISABLED;
     }
 
     public void sendQuit() {
@@ -247,17 +279,35 @@ public class TeddyClient {
     }
 
     protected void send(Object jsonObject, boolean waitForLogin) {
-        if (waitForLogin && !this.loggedIn) {
-            // Queue messages to be sent when logged in
-            this.messageQueue.add(jsonObject);
-        } else {
-            try {
-                byte[] message = this.mObjectMapper.writeValueAsBytes(jsonObject);
-                Log.v(TAG, "Sending: " + new String(message));
-                this.mConnection.sendRawTextMessage(message);
-            } catch (IOException e) {
-                Log.e(TAG, "Message sending failed", e);
-            }
+        switch (this.connectionState) {
+            case DISCONNECTED:
+                this.connect();
+                this.messageQueue.add(jsonObject);
+                break;
+            case CONNECTING:
+            case CONNECTED:
+                if (waitForLogin) {
+                    // Queue messages to be sent when logged in
+                    this.messageQueue.add(jsonObject);
+                } else {
+                    this.sendDirect(jsonObject);
+                }
+                break;
+            case LOGGED_IN:
+                this.sendDirect(jsonObject);
+                break;
+            default:
+                Log.w(TAG, "Unknown state while sending: " + this.connectionState);
+        }
+    }
+
+    private void sendDirect(Object jsonObject) {
+        try {
+            byte[] message = this.mObjectMapper.writeValueAsBytes(jsonObject);
+            Log.v(TAG, "Sending: " + new String(message));
+            this.mConnection.sendRawTextMessage(message);
+        } catch (IOException e) {
+            Log.e(TAG, "Message sending failed", e);
         }
     }
 

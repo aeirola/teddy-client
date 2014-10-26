@@ -13,13 +13,13 @@ import fi.iki.aeirola.teddyclientlib.models.response.HDataType;
 /**
  * Created by Axel on 26.10.2014.
  */
-class TeddyConnectionHandler extends WebSocketConnectionHandler {
-    private static final String TAG = TeddyConnectionHandler.class.getName();
+class TeddyEventHandler extends WebSocketConnectionHandler {
+    private static final String TAG = TeddyEventHandler.class.getName();
 
     private final TeddyClient teddyClient;
     private final ObjectMapper mObjectMapper;
 
-    public TeddyConnectionHandler(TeddyClient teddyClient, ObjectMapper objectMapper) {
+    public TeddyEventHandler(TeddyClient teddyClient, ObjectMapper objectMapper) {
         this.teddyClient = teddyClient;
         this.mObjectMapper = objectMapper;
     }

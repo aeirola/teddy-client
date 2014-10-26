@@ -63,11 +63,10 @@ public class WindowListFragment extends ListFragment {
         super.onCreate(savedInstanceState);
 
         mTeddyClient = TeddyClient.getInstance(getActivity());
-        mTeddyClient.connect();
         mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
             public void onWindowList(List<Window> windowList) {
-                Log.v("WindowListFragment", "windows received!");
+                Log.v(TAG, "windows received!");
 
                 setListAdapter(new ArrayAdapter<Window>(
                         getActivity(),
@@ -75,8 +74,7 @@ public class WindowListFragment extends ListFragment {
                         android.R.id.text1,
                         windowList));
             }
-        }, "WindowListFragment");
-        mTeddyClient.requestWindowList();
+        }, TAG);
     }
 
     @Override
@@ -88,6 +86,13 @@ public class WindowListFragment extends ListFragment {
                 && savedInstanceState.containsKey(STATE_ACTIVATED_POSITION)) {
             setActivatedPosition(savedInstanceState.getInt(STATE_ACTIVATED_POSITION));
         }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        mTeddyClient.requestWindowList();
     }
 
     @Override
