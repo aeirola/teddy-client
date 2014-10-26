@@ -24,6 +24,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  * interface.
  */
 public class WindowListFragment extends ListFragment {
+    private static final String TAG = WindowListFragment.class.getName();
 
     /**
      * The serialization (saved instance state) Bundle key representing the

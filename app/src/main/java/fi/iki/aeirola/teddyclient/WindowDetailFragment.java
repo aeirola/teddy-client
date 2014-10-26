@@ -33,7 +33,7 @@ public class WindowDetailFragment extends ListFragment {
      * represents.
      */
     public static final String ARG_WINDOW = "item_id";
-    private static final String TAG = "WindowDetailFragment";
+    private static final String TAG = WindowDetailFragment.class.getName();
 
     /**
      * The dummy content this fragment is presenting.
@@ -76,7 +76,7 @@ public class WindowDetailFragment extends ListFragment {
                 mListAdapter.addAll(lineList);
                 WindowDetailFragment.this.scrollToBottom();
             }
-        }, "WindowListFragment");
+        }, TAG);
     }
 
     private void scrollToBottom() {
@@ -131,7 +131,6 @@ public class WindowDetailFragment extends ListFragment {
 
         mTeddyClient.disableSync();
     }
-
 
 
     private void sendMessage() {

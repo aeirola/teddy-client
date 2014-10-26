@@ -43,89 +43,14 @@ import fi.iki.aeirola.teddyclientlib.models.request.LoginRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.NickListRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.SyncRequest;
 import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
-import fi.iki.aeirola.teddyclientlib.models.response.HDataType;
 
 /**
  * Created by aeirola on 14.10.2014.
  */
 public class TeddyClient {
     private static final String TAG = "TeddyProtocolClient";
-    private final WebSocketConnectionHandler mConnectionHandler = new WebSocketConnectionHandler() {
-
-        @Override
-        public void onOpen() {
-            Log.d(TAG, "Connected!");
-            TeddyClient.this.sendChallenge();
-
-            for (TeddyCallbackHandler callbackHandler : TeddyClient.this.callbackHandlers.values()) {
-                callbackHandler.onConnect();
-            }
-        }
-
-        @Override
-        public void onClose(int code, String reason) {
-            Log.d(TAG, "Closed!" + code + reason);
-
-            for (TeddyCallbackHandler callbackHandler : TeddyClient.this.callbackHandlers.values()) {
-                callbackHandler.onClose();
-            }
-        }
-
-        @Override
-        public void onTextMessage(String payload) {
-            Log.v(TAG, "Received: " + payload);
-
-            CommonResponse response;
-            try {
-                response = TeddyClient.this.mObjectMapper.readValue(payload, CommonResponse.class);
-            } catch (IOException e) {
-                Log.e(TAG, "JSON parsing failed", e);
-                return;
-            }
-
-            if (response.id != null) {
-                switch (response.id) {
-                    case "_buffer_line_added":
-                        TeddyClient.this.onLineList(response);
-                        return;
-                }
-            }
-
-            if (response.challenge != null) {
-                TeddyClient.this.onChallenge((response.challenge));
-            } else if (response.login != null) {
-                if (response.login) {
-                    TeddyClient.this.onLogin();
-                }
-            } else if (response.info != null) {
-                if (response.info.version != null) {
-                    TeddyClient.this.onVersion((response.info.version));
-                }
-            } else if (response.hdata != null) {
-                HDataType type = response.getType();
-                if (type == null) {
-                    Log.w(TAG, "HData not identified " + response.hdata);
-                    return;
-                }
-                switch (type) {
-                    case WINDOW:
-                        TeddyClient.this.onWindowList(response);
-                        break;
-                    case LINE:
-                        TeddyClient.this.onLineList(response);
-                        break;
-                    default:
-                        Log.w(TAG, "HData not identified " + type);
-
-                }
-            } else if (response.nicklist != null) {
-                TeddyClient.this.onNickList(response);
-            } else {
-                TeddyClient.this.onPing();
-            }
-        }
-    };
     private static TeddyClient instance;
+    private final WebSocketConnectionHandler mConnectionHandler;
     private final WebSocket mConnection;
     private final WebSocketOptions mConnectionOptions;
     private final ObjectMapper mObjectMapper = new ObjectMapper();
@@ -137,7 +62,7 @@ public class TeddyClient {
     private String serverChallengeString;
     private boolean loggedIn = false;
 
-    public TeddyClient(String uri, String password) {
+    protected TeddyClient(String uri, String password) {
         this.mConnection = new WebSocketConnection();
         this.mConnectionOptions = new WebSocketOptions();
         this.mConnectionOptions.setReceiveTextMessagesRaw(false);
@@ -149,18 +74,20 @@ public class TeddyClient {
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
+        this.mConnectionHandler = new TeddyConnectionHandler(this, mObjectMapper);
+
         this.uri = uri;
         this.password = password;
     }
 
-    private TeddyClient(SharedPreferences sharedPref) {
+    protected TeddyClient(SharedPreferences sharedPref) {
         this(sharedPref.getString(SettingsActivity.KEY_PREF_URI, ""),
                 sharedPref.getString(SettingsActivity.KEY_PREF_PASSWORD, ""));
     }
 
     public static TeddyClient getInstance(Context context) {
         if (instance == null) {
-            Log.v(TAG, "Creating new instance of model");
+            Log.d(TAG, "Creating new instance");
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
             instance = new TeddyClient(pref);
         }
@@ -177,9 +104,25 @@ public class TeddyClient {
         }
     }
 
+    protected void onConnect() {
+        Log.d(TAG, "Connected");
+        sendChallenge();
+
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+            callbackHandler.onConnect();
+        }
+    }
+
     public void disconnect() {
         Log.d(TAG, "Disonnecting");
         this.mConnection.disconnect();
+    }
+
+    protected void onDisconnect() {
+        Log.d(TAG, "Disconnected");
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+            callbackHandler.onClose();
+        }
     }
 
     public void sendChallenge() {
@@ -189,7 +132,7 @@ public class TeddyClient {
         this.send(new ChallengeRequest(this.clientChallengeString), false);
     }
 
-    public void onChallenge(String challenge) {
+    protected void onChallenge(String challenge) {
         Log.d(TAG, "Received server challenge: " + challenge);
         this.serverChallengeString = challenge;
         this.sendLogin();
@@ -201,7 +144,7 @@ public class TeddyClient {
         this.send(new LoginRequest(loginToken), false);
     }
 
-    public void onLogin() {
+    protected void onLogin() {
         Log.i(TAG, "Logged in!");
         this.loggedIn = true;
         // Send queued messages
@@ -220,14 +163,14 @@ public class TeddyClient {
         this.send(new InfoRequest("version"));
     }
 
-    public void onVersion(String version) {
+    protected void onVersion(String version) {
         Log.d(TAG, "Version received: " + version);
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onVersion(version);
         }
     }
 
-    public void onPing() {
+    protected void onPing() {
         Log.d(TAG, "Ping");
     }
 
@@ -236,7 +179,7 @@ public class TeddyClient {
         this.send(new HDataRequest("buffer:gui_buffers(*)"));
     }
 
-    private void onWindowList(CommonResponse hdata) {
+    protected void onWindowList(CommonResponse hdata) {
         Log.d(TAG, "Received window list");
         List<Window> windowList = hdata.toWindowList();
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
@@ -256,7 +199,7 @@ public class TeddyClient {
         this.send(new HDataRequest("buffer:0x" + windowId + "/own_lines/last_line(-" + size + "," + offset + ")/data"));
     }
 
-    private void onLineList(CommonResponse hdata) {
+    protected void onLineList(CommonResponse hdata) {
         List<Line> lineList = hdata.toLineList();
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onLineList(lineList);
@@ -267,7 +210,7 @@ public class TeddyClient {
         this.send(new NickListRequest(window.fullName));
     }
 
-    private void onNickList(CommonResponse nicklist) {
+    protected void onNickList(CommonResponse nicklist) {
         List<Nick> nickList = nicklist.toNickList();
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onNickList(nickList);
@@ -299,11 +242,11 @@ public class TeddyClient {
         this.callbackHandlers.remove(handlerKey);
     }
 
-    private void send(Object jsonObject) {
+    protected void send(Object jsonObject) {
         this.send(jsonObject, true);
     }
 
-    private void send(Object jsonObject, boolean waitForLogin) {
+    protected void send(Object jsonObject, boolean waitForLogin) {
         if (waitForLogin && !this.loggedIn) {
             // Queue messages to be sent when logged in
             this.messageQueue.add(jsonObject);
@@ -324,7 +267,7 @@ public class TeddyClient {
             SecretKey clientChallengeKey = keyGenerator.generateKey();
             return Base64.encodeToString(clientChallengeKey.getEncoded(), Base64.NO_PADDING | Base64.NO_WRAP);
         } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "Login challenge generatin failed", e);
+            Log.e(TAG, "Login challenge generation failed", e);
             return null;
         }
     }
@@ -352,5 +295,6 @@ public class TeddyClient {
             return null;
         }
     }
+
 }
 
