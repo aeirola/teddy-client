@@ -89,7 +89,7 @@ public class TestServer extends WebSocketServer {
                 hdata.highlight = 0;
                 hdata.buffer = 1L;
                 hdata.date = "";
-                hdata.fromNick = "test_user";
+                hdata.fromnick = "test_user";
                 hdata.message = "hello there!";
                 response.hdata.add(hdata);
             }
@@ -108,7 +108,7 @@ public class TestServer extends WebSocketServer {
                 hdata.highlight = 0;
                 hdata.buffer = 1L;
                 hdata.date = "";
-                hdata.fromNick = "test_user";
+                hdata.fromnick = "test_user";
                 hdata.message = input.data;
                 response.hdata.add(hdata);
             }

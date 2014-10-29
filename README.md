@@ -7,15 +7,19 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 
 TODO
 ----
+- SSL support
+ - Selfsigned cert fingerprint matching
+- TravisCI
+ - Upload to g-drive?
+
+------- Field test -------
+
 - Improve line rendering
- - Filter ANSI escape codes from input
-  - Generate android spans from them
- - Show nick and timestamp
+ - Handle irssi escapes
  - TextView_autoLink
 - Improved server event handling
  - Use of Loaders and Cursors for data updates?
  - Register only to required events
-- SSL support
 - Visual tweaking
  - Material design
  - Transitions

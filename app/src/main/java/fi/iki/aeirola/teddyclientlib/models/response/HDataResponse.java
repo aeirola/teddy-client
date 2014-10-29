@@ -20,7 +20,7 @@ public class HDataResponse {
     public Integer displayed;
     public String date;
     public Long buffer;
-    public String fromNick;
+    public String fromnick;
     public String strtime;
     public String message;
     public List<String> tagsArray;
