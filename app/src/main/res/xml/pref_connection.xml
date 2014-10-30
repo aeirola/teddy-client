@@ -11,10 +11,8 @@
         android:title="@string/pref_title_uri" />
 
     <EditTextPreference
+        android:inputType="textPassword"
         android:key="password"
-        android:maxLines="1"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
         android:title="@string/pref_title_password" />
 
     <CheckBoxPreference

@@ -11,6 +11,8 @@ import android.preference.PreferenceManager;
 
 import java.util.List;
 
+import fi.iki.aeirola.teddyclientlib.TeddyClient;
+
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
  * handset devices, settings are presented as a single list. On tablets,
@@ -136,7 +138,6 @@ public class SettingsActivity extends PreferenceActivity {
         // their values. When their values change, their summaries are updated
         // to reflect the new value, per the Android Design guidelines.
         bindPreferenceSummaryToValue(findPreference(KEY_PREF_URI));
-        bindPreferenceSummaryToValue(findPreference(KEY_PREF_PASSWORD));
     }
 
     /**
@@ -157,6 +158,12 @@ public class SettingsActivity extends PreferenceActivity {
         }
     }
 
+    @Override
+    public boolean onNavigateUp() {
+        TeddyClient.updatePreferences(this);
+        return super.onNavigateUp();
+    }
+
     /**
      * This fragment shows general preferences only. It is used when the
      * activity is showing a two-pane settings UI.
@@ -172,7 +179,6 @@ public class SettingsActivity extends PreferenceActivity {
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference(KEY_PREF_URI));
-            bindPreferenceSummaryToValue(findPreference(KEY_PREF_PASSWORD));
         }
     }
 }

@@ -98,8 +98,25 @@ public class TeddyClient {
         return instance;
     }
 
+
+    public static void updatePreferences(Context context) {
+        if (instance != null) {
+            Log.i(TAG, "Updating preferences");
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            instance.uri = pref.getString(SettingsActivity.KEY_PREF_URI, "");
+            instance.password = pref.getString(SettingsActivity.KEY_PREF_PASSWORD, "");
+            instance.disconnect();
+        }
+    }
+
+
     public void connect() {
         if (this.connectionState == State.CONNECTING || this.mConnection.isConnected()) {
+            return;
+        }
+
+        if (this.uri == null || this.uri.isEmpty()) {
+            Log.w(TAG, "Uri not configured, not connecting");
             return;
         }
 
@@ -345,6 +362,5 @@ public class TeddyClient {
             return null;
         }
     }
-
 }
 
