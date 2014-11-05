@@ -65,14 +65,19 @@ public class WindowListFragment extends ListFragment {
         mTeddyClient = TeddyClient.getInstance(getActivity());
         mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
-            public void onWindowList(List<Window> windowList) {
+            public void onWindowList(final List<Window> windowList) {
                 Log.v(TAG, "windows received!");
 
-                setListAdapter(new ArrayAdapter<Window>(
-                        getActivity(),
-                        android.R.layout.simple_list_item_activated_1,
-                        android.R.id.text1,
-                        windowList));
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setListAdapter(new ArrayAdapter<Window>(
+                                getActivity(),
+                                android.R.layout.simple_list_item_activated_1,
+                                android.R.id.text1,
+                                windowList));
+                    }
+                });
             }
         }, TAG);
     }

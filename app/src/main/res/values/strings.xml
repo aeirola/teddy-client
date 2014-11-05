@@ -8,8 +8,7 @@
     <string name="pref_title_uri">Hostname</string>
     <string name="pref_default_uri">ws://localhost:8080/endpoint</string>
     <string name="pref_title_password">Password</string>
-    <string name="pref_title_allow_untrusted_ssl">Allow untrusted SSL</string>
-    <string name="pref_description_allow_untrusted_ssl">Allow untrusted SSL</string>
+    <string name="pref_title_cert_fingerprint">Cert fingerprint</string>
     <string name="action_quit">Quit</string>
 
 </resources>

@@ -6,12 +6,8 @@ import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-
-import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -27,11 +23,6 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import de.tavendo.autobahn.WebSocket;
-import de.tavendo.autobahn.WebSocketConnection;
-import de.tavendo.autobahn.WebSocketConnectionHandler;
-import de.tavendo.autobahn.WebSocketException;
-import de.tavendo.autobahn.WebSocketOptions;
 import fi.iki.aeirola.teddyclient.SettingsActivity;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Nick;
@@ -50,43 +41,41 @@ import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
  * Created by aeirola on 14.10.2014.
  */
 public class TeddyClient {
-    private static final String TAG = "TeddyProtocolClient";
+    private static final String TAG = TeddyClient.class.getName();
     private static TeddyClient instance;
-    private final WebSocketConnectionHandler mConnectionHandler;
-    private final WebSocket mConnection;
-    private final WebSocketOptions mConnectionOptions;
-    private final ObjectMapper mObjectMapper = new ObjectMapper();
     private final Queue<Object> messageQueue = new ArrayDeque<>();
     private final Map<String, TeddyCallbackHandler> callbackHandlers = new HashMap<>();
-    private String uri;
+    private TeddyConnectionHandler mConnectionHandler;
+    private URI uri;
     private String password;
+    private String certFingerprint;
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
     private SyncState syncState = SyncState.DISABLED;
 
-    protected TeddyClient(String uri, String password) {
-        this.mConnection = new WebSocketConnection();
-        this.mConnectionOptions = new WebSocketOptions();
-        this.mConnectionOptions.setReceiveTextMessagesRaw(false);
-        this.mConnectionOptions.setValidateIncomingUtf8(true);
-        this.mConnectionOptions.setMaskClientFrames(true);
-        this.mConnectionOptions.setTcpNoDelay(true);
+    protected TeddyClient(String uri, String password, String certFingerprint) {
 
-        this.mObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-        this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        this.mConnectionHandler = new TeddyEventHandler(this, mObjectMapper);
-
-        this.uri = uri;
+        try {
+            this.uri = new URI(uri);
+        } catch (URISyntaxException e) {
+            Log.e(TAG, "Failed to setURI", e);
+            instance.uri = null;
+        }
         this.password = password;
+        this.certFingerprint = certFingerprint;
     }
 
     protected TeddyClient(SharedPreferences sharedPref) {
         this(sharedPref.getString(SettingsActivity.KEY_PREF_URI, ""),
-                sharedPref.getString(SettingsActivity.KEY_PREF_PASSWORD, ""));
+                sharedPref.getString(SettingsActivity.KEY_PREF_PASSWORD, ""),
+                sharedPref.getString(SettingsActivity.KEY_PREF_CERT_FINGERPRINT, ""));
     }
+
+    protected TeddyClient(String uri, String password) {
+        this(uri, password, null);
+    }
+
 
     public static TeddyClient getInstance(Context context) {
         if (instance == null) {
@@ -103,30 +92,33 @@ public class TeddyClient {
         if (instance != null) {
             Log.i(TAG, "Updating preferences");
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            instance.uri = pref.getString(SettingsActivity.KEY_PREF_URI, "");
+            try {
+                instance.uri = new URI(pref.getString(SettingsActivity.KEY_PREF_URI, ""));
+            } catch (URISyntaxException e) {
+                Log.e(TAG, "Failed to update URI", e);
+                instance.uri = null;
+            }
             instance.password = pref.getString(SettingsActivity.KEY_PREF_PASSWORD, "");
+            instance.certFingerprint = pref.getString(SettingsActivity.KEY_PREF_CERT_FINGERPRINT, "");
             instance.disconnect();
         }
     }
 
 
     public void connect() {
-        if (this.connectionState == State.CONNECTING || this.mConnection.isConnected()) {
+        if (this.connectionState == State.CONNECTING) {
             return;
         }
 
-        if (this.uri == null || this.uri.isEmpty()) {
+        if (this.uri == null) {
             Log.w(TAG, "Uri not configured, not connecting");
             return;
         }
 
-        try {
-            Log.d(TAG, "Connecting");
-            this.connectionState = State.CONNECTING;
-            this.mConnection.connect(this.uri, this.mConnectionHandler, this.mConnectionOptions);
-        } catch (WebSocketException e) {
-            Log.e(TAG, "Connection failed", e);
-        }
+        Log.d(TAG, "Connecting to " + this.uri);
+        this.connectionState = State.CONNECTING;
+        this.mConnectionHandler = new TeddyConnectionHandler(this.uri, this.certFingerprint, this);
+        this.mConnectionHandler.connect();
     }
 
     protected void onConnect() {
@@ -140,12 +132,8 @@ public class TeddyClient {
     }
 
     public void disconnect() {
-        if (!this.mConnection.isConnected()) {
-            Log.d(TAG, "Already disconnected");
-        } else {
-            Log.d(TAG, "Disconnecting");
-            this.mConnection.disconnect();
-        }
+        Log.d(TAG, "Disconnecting");
+        this.mConnectionHandler.close();
     }
 
     protected void onDisconnect() {
@@ -307,24 +295,14 @@ public class TeddyClient {
                     // Queue messages to be sent when logged in
                     this.messageQueue.add(jsonObject);
                 } else {
-                    this.sendDirect(jsonObject);
+                    this.mConnectionHandler.send(jsonObject);
                 }
                 break;
             case LOGGED_IN:
-                this.sendDirect(jsonObject);
+                this.mConnectionHandler.send(jsonObject);
                 break;
             default:
                 Log.w(TAG, "Unknown state while sending: " + this.connectionState);
-        }
-    }
-
-    private void sendDirect(Object jsonObject) {
-        try {
-            byte[] message = this.mObjectMapper.writeValueAsBytes(jsonObject);
-            Log.v(TAG, "Sending: " + new String(message));
-            this.mConnection.sendRawTextMessage(message);
-        } catch (IOException e) {
-            Log.e(TAG, "Message sending failed", e);
         }
     }
 

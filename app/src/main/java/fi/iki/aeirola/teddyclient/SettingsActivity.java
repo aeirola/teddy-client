@@ -27,6 +27,7 @@ import fi.iki.aeirola.teddyclientlib.TeddyClient;
 public class SettingsActivity extends PreferenceActivity {
     public static final String KEY_PREF_URI = "uri";
     public static final String KEY_PREF_PASSWORD = "password";
+    public static final String KEY_PREF_CERT_FINGERPRINT = "cert_fingerprint";
     /**
      * Determines whether to always show the simplified settings UI, where
      * settings are presented in a single list. When false, settings are shown
@@ -138,6 +139,7 @@ public class SettingsActivity extends PreferenceActivity {
         // their values. When their values change, their summaries are updated
         // to reflect the new value, per the Android Design guidelines.
         bindPreferenceSummaryToValue(findPreference(KEY_PREF_URI));
+        bindPreferenceSummaryToValue(findPreference(KEY_PREF_CERT_FINGERPRINT));
     }
 
     /**
@@ -179,6 +181,7 @@ public class SettingsActivity extends PreferenceActivity {
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference(KEY_PREF_URI));
+            bindPreferenceSummaryToValue(findPreference(KEY_PREF_CERT_FINGERPRINT));
         }
     }
 }

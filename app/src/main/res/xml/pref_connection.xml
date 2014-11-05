@@ -4,6 +4,7 @@
     <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
     <EditTextPreference
         android:defaultValue="@string/pref_default_uri"
+        android:inputType="textUri"
         android:key="uri"
         android:maxLines="1"
         android:selectAllOnFocus="true"
@@ -15,11 +16,9 @@
         android:key="password"
         android:title="@string/pref_title_password" />
 
-    <CheckBoxPreference
-        android:defaultValue="false"
-        android:key="allow_untrusted_ssl"
-        android:summary="@string/pref_description_allow_untrusted_ssl"
-        android:title="@string/pref_title_allow_untrusted_ssl" />
-
+    <EditTextPreference
+        android:inputType="text"
+        android:key="cert_fingerprint"
+        android:title="@string/pref_title_cert_fingerprint" />
 
 </PreferenceScreen>

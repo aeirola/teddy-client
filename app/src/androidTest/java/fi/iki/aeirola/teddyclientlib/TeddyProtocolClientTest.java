@@ -22,7 +22,6 @@ public class TeddyProtocolClientTest extends TestCase {
     private TestServer server;
 
     private CountDownLatch testLatch;
-    private ModalLooper modal;
     private TeddyClient teddyProtocol;
 
     private String receivedVersion;
@@ -37,9 +36,8 @@ public class TeddyProtocolClientTest extends TestCase {
         // Wait for server to start
         Thread.sleep(100);
 
-        this.uri = "ws://localhost:8080/";
+        this.uri = "ws://localhost:8080";
         this.testLatch = new CountDownLatch(1);
-        modal = new ModalLooper();
     }
 
     @Override
@@ -52,7 +50,6 @@ public class TeddyProtocolClientTest extends TestCase {
         teddyProtocol.registerCallbackHandler(callbackHandler, "testHandler");
 
         teddyProtocol.connect();
-        modal.loop(TIMEOUT);
         boolean success = testLatch.await(TIMEOUT, TimeUnit.MILLISECONDS);
         teddyProtocol.disconnect();
 
@@ -62,7 +59,6 @@ public class TeddyProtocolClientTest extends TestCase {
 
     protected void endTest() {
         testLatch.countDown();
-        modal.stop();
     }
 
     public void testConnectToServer() throws InterruptedException {

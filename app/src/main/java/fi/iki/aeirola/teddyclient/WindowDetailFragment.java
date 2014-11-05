@@ -66,7 +66,7 @@ public class WindowDetailFragment extends ListFragment {
 
         mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
-            public void onLineList(List<Line> lineList) {
+            public void onLineList(final List<Line> lineList) {
                 Iterator<Line> lineIterator = lineList.iterator();
                 while (lineIterator.hasNext()) {
                     if (lineIterator.next().windowId != WindowDetailFragment.this.window.id) {
@@ -74,8 +74,14 @@ public class WindowDetailFragment extends ListFragment {
                     }
                 }
                 Collections.reverse(lineList);
-                mListAdapter.addAll(lineList);
-                WindowDetailFragment.this.scrollToBottom();
+
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListAdapter.addAll(lineList);
+                        WindowDetailFragment.this.scrollToBottom();
+                    }
+                });
             }
         }, TAG);
     }

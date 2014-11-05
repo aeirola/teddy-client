@@ -28,12 +28,7 @@ android {
     }
 }
 
-repositories {
-    maven { url 'https://raw.github.com/ChristianBecker/android_repo/master/' }
-}
-
 dependencies {
-    compile 'de.tavendo:autobahn-android:0.5.2-noWamp'
+    compile 'org.java-websocket:Java-WebSocket:1.3.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.4.3'
-    androidTestCompile 'org.java-websocket:Java-WebSocket:1.3.0'
 }

@@ -7,15 +7,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 
 import org.java_websocket.WebSocket;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_10;
+import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import fi.iki.aeirola.teddyclientlib.models.request.InputRequest;
 import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
@@ -27,17 +33,23 @@ import fi.iki.aeirola.teddyclientlib.models.response.NickListResponse;
  * Created by Axel on 21.10.2014.
  */
 public class TestServer extends WebSocketServer {
-    private static final String TAG = "TestServer";
+    private static final String TAG = TestServer.class.getName();
     private final ObjectMapper mObjectMapper = new ObjectMapper();
 
     public TestServer(InetSocketAddress address) throws UnknownHostException {
-        super(address);
+        super(address, Collections.singletonList((Draft) new Draft_10()));
 
         this.mObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         Log.i(TAG, "Listening on " + address.getHostString() + ":" + address.getPort());
+    }
+
+    @Override
+    public void onWebsocketMessageFragment(WebSocket conn, Framedata frame) {
+        Log.v(TAG, String.valueOf(frame));
+        super.onWebsocketMessageFragment(conn, frame);
     }
 
     @Override
@@ -51,17 +63,32 @@ public class TestServer extends WebSocketServer {
     }
 
     @Override
-    public void onMessage(WebSocket conn, String message) {
+    public void onMessage(WebSocket conn, ByteBuffer message) {
         Log.i(TAG, "Client sent message: " + message);
-        CommonRequest request;
 
         try {
-            request = this.mObjectMapper.readValue(message, CommonRequest.class);
+            CommonRequest request = this.mObjectMapper.readValue(new ByteBufferBackedInputStream(message), CommonRequest.class);
+            onMessage(conn, request);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
             return;
         }
+    }
 
+    @Override
+    public void onMessage(WebSocket conn, String message) {
+        Log.i(TAG, "Client sent message: " + message);
+
+        try {
+            CommonRequest request = this.mObjectMapper.readValue(message, CommonRequest.class);
+            onMessage(conn, request);
+        } catch (IOException e) {
+            Log.e(TAG, "JSON parsing failed", e);
+            return;
+        }
+    }
+
+    public void onMessage(WebSocket conn, CommonRequest request) {
         CommonResponse response = new CommonResponse();
         if (request.challenge != null) {
             response.challenge = "test-server-challenge";
@@ -116,7 +143,7 @@ public class TestServer extends WebSocketServer {
             Log.w(TAG, "Unknown request");
         }
 
-        if (response != null && conn.isOpen()) {
+        if (conn.isOpen()) {
             try {
                 conn.send(this.mObjectMapper.writeValueAsString(response));
             } catch (JsonProcessingException e) {
