@@ -1,0 +1,11 @@
+language: android
+android:
+  components:
+    # The BuildTools version used
+    - build-tools-21.1.0
+
+    # The SDK version used
+    - android-21
+
+    # System image used
+    - sys-img-x86-android-21

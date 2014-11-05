@@ -5,10 +5,10 @@ Android client app for connecting to irssi instances running the `teddy.pl` remo
 
 Currently based on the Autobahn|Android WebSocket client library and the Jackson JSON library.
 
+[![Build Status](https://travis-ci.org/aeirola/teddy-client.svg)](https://travis-ci.org/aeirola/teddy-client)
+
 TODO
 ----
-- SSL support
- - Selfsigned cert fingerprint matching
 - TravisCI
  - Upload to g-drive?
 
