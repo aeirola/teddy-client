@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 21
-    buildToolsVersion '21.0.2'
+    buildToolsVersion '21.1'
     defaultConfig {
         applicationId "fi.iki.aeirola.teddyclient"
-        minSdkVersion 19
+        minSdkVersion 14
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
