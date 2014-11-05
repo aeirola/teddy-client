@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import fi.iki.aeirola.teddyclientlib.models.Line;
@@ -18,7 +19,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  */
 public class CommonResponse extends BaseResponse {
 
-    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
 
     {
         DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));

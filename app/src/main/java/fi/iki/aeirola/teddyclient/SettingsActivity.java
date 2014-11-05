@@ -1,5 +1,6 @@
 package fi.iki.aeirola.teddyclient;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.os.Build;
@@ -161,6 +162,7 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     @Override
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     public boolean onNavigateUp() {
         TeddyClient.updatePreferences(this);
         return super.onNavigateUp();

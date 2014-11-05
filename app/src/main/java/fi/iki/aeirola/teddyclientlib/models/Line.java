@@ -3,12 +3,13 @@ package fi.iki.aeirola.teddyclientlib.models;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by aeirola on 15.10.2014.
  */
 public class Line {
-    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm");
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm", Locale.US);
 
     public long windowId;
     public Date date;
