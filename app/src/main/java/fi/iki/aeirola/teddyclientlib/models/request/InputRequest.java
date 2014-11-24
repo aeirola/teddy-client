@@ -1,19 +1,21 @@
 package fi.iki.aeirola.teddyclientlib.models.request;
 
+import java.io.Serializable;
+
 /**
  * Created by aeirola on 15.10.2014.
  */
-public class InputRequest extends BaseRequest {
-    public Input input = new Input();
+public class InputRequest implements Serializable {
+    public Long window;
+    public String data;
+    public boolean active = false;
 
-    public InputRequest(String buffer, String data) {
-        this.input.buffer = buffer;
-        this.input.data = data;
+    public InputRequest() {
+
     }
 
-    public static class Input {
-        public String buffer;
-        public String data;
+    public InputRequest(Long windowId, String data) {
+        this.window = windowId;
+        this.data = data;
     }
-
 }

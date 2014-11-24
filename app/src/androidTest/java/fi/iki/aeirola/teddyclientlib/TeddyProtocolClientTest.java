@@ -9,7 +9,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import fi.iki.aeirola.teddyclientlib.models.Line;
-import fi.iki.aeirola.teddyclientlib.models.Nick;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
 /**
@@ -27,7 +26,6 @@ public class TeddyProtocolClientTest extends TestCase {
     private String receivedVersion;
     private List<Window> receivedWindowList;
     private List<Line> receivedLineList;
-    private List<Nick> receivedNickList;
 
     @Override
     public void setUp() throws Exception {
@@ -133,28 +131,6 @@ public class TeddyProtocolClientTest extends TestCase {
         assertTrue("First line item doesn't contain mark", receivedLineList.get(0).message.contains("hello"));
     }
 
-    public void testNickList() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyCallbackHandler() {
-            @Override
-            public void onLogin() {
-                teddyProtocol.requestWindowList();
-            }
-
-            @Override
-            public void onWindowList(List<Window> windowList) {
-                teddyProtocol.requestNickList(windowList.get(0));
-            }
-
-            @Override
-            public void onNickList(List<Nick> nickList) {
-                receivedNickList = nickList;
-                TeddyProtocolClientTest.this.endTest();
-            }
-        });
-
-        assertTrue("First window item doesn't contain status", receivedNickList.get(0).name.contains("test_user"));
-    }
-
     public void testInput() throws URISyntaxException, InterruptedException {
         final String input = "hello to you too!";
         this.runTest(new TeddyCallbackHandler() {
@@ -166,7 +142,8 @@ public class TeddyProtocolClientTest extends TestCase {
             @Override
             public void onWindowList(List<Window> windowList) {
                 Window window = windowList.get(0);
-                teddyProtocol.sendInput(window.fullName, input);
+                teddyProtocol.subscribeLines(window.viewId);
+                teddyProtocol.sendInput(window.id, input);
             }
 
             @Override
@@ -176,7 +153,7 @@ public class TeddyProtocolClientTest extends TestCase {
             }
         });
 
-        assertTrue("First window item doesn't contain status", receivedLineList.get(0).message.equals(input));
+        assertTrue("Lines doesn't contain input", receivedLineList.get(0).message.endsWith(input));
     }
 
 }

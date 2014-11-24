@@ -22,8 +22,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
-import fi.iki.aeirola.teddyclientlib.models.response.HDataType;
+import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
+import fi.iki.aeirola.teddyclientlib.models.response.Response;
 
 /**
  * Created by Axel on 26.10.2014.
@@ -42,7 +42,7 @@ class TeddyConnectionHandler extends WebSocketClient {
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        if (uri != null && uri.getScheme().equals("wss")) {
+        if (uri != null && uri.getScheme() != null && uri.getScheme().equals("wss")) {
             trustFingerprint(certFingerprint.replace(":", ""));
         }
     }
@@ -79,9 +79,14 @@ class TeddyConnectionHandler extends WebSocketClient {
     public void onMessage(String payload) {
         Log.v(TAG, "Received: " + payload);
 
-        CommonResponse response;
+        if (payload.equals("{}")) {
+            teddyClient.onPing();
+            return;
+        }
+
+        Response response;
         try {
-            response = mObjectMapper.readValue(payload, CommonResponse.class);
+            response = mObjectMapper.readValue(payload, Response.class);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
             return;
@@ -90,43 +95,39 @@ class TeddyConnectionHandler extends WebSocketClient {
         if (response.id != null) {
             switch (response.id) {
                 case "_buffer_line_added":
-                    teddyClient.onLineList(response);
+                    //teddyClient.onLineList(response);
                     return;
             }
         }
 
         if (response.challenge != null) {
             teddyClient.onChallenge((response.challenge));
-        } else if (response.login != null) {
+        }
+
+        if (response.login != null) {
             if (response.login) {
                 teddyClient.onLogin();
             }
-        } else if (response.info != null) {
+        }
+
+        if (response.info != null) {
             if (response.info.version != null) {
                 teddyClient.onVersion((response.info.version));
             }
-        } else if (response.hdata != null) {
-            HDataType type = response.getType();
-            if (type == null) {
-                Log.w(TAG, "HData not identified " + response.hdata);
-                return;
-            }
-            switch (type) {
-                case WINDOW:
-                    teddyClient.onWindowList(response);
-                    break;
-                case LINE:
-                    teddyClient.onLineList(response);
-                    break;
-                default:
-                    Log.w(TAG, "HData not identified " + type);
-
-            }
-        } else if (response.nicklist != null) {
-            teddyClient.onNickList(response);
-        } else {
-            teddyClient.onPing();
         }
+
+        if (response.window != null) {
+            teddyClient.onWindowList(response.window.toList(response.item));
+        }
+
+        if (response.line != null) {
+            teddyClient.onLineList(response.line.toList());
+        }
+
+        if (response.lineAdded != null) {
+            teddyClient.onLineList(LineResponse.toList(response.lineAdded));
+        }
+
     }
 
     public void send(Object jsonObject) {

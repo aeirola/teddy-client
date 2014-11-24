@@ -7,6 +7,7 @@ import java.io.Serializable;
  */
 public class Window implements Serializable {
     public long id;
+    public long viewId;
     public String name;
     public String fullName;
 

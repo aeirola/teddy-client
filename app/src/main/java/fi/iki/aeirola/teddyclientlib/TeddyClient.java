@@ -12,9 +12,11 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -25,17 +27,13 @@ import javax.crypto.spec.SecretKeySpec;
 
 import fi.iki.aeirola.teddyclient.SettingsActivity;
 import fi.iki.aeirola.teddyclientlib.models.Line;
-import fi.iki.aeirola.teddyclientlib.models.Nick;
 import fi.iki.aeirola.teddyclientlib.models.Window;
-import fi.iki.aeirola.teddyclientlib.models.request.ChallengeRequest;
-import fi.iki.aeirola.teddyclientlib.models.request.DesyncRequest;
-import fi.iki.aeirola.teddyclientlib.models.request.HDataRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.InfoRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.InputRequest;
-import fi.iki.aeirola.teddyclientlib.models.request.LoginRequest;
-import fi.iki.aeirola.teddyclientlib.models.request.NickListRequest;
-import fi.iki.aeirola.teddyclientlib.models.request.SyncRequest;
-import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
+import fi.iki.aeirola.teddyclientlib.models.request.ItemRequest;
+import fi.iki.aeirola.teddyclientlib.models.request.LineRequest;
+import fi.iki.aeirola.teddyclientlib.models.request.Request;
+import fi.iki.aeirola.teddyclientlib.models.request.WindowRequest;
 
 /**
  * Created by aeirola on 14.10.2014.
@@ -52,7 +50,7 @@ public class TeddyClient {
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
-    private SyncState syncState = SyncState.DISABLED;
+    private Set<Long> syncs = new HashSet<>();
 
     protected TeddyClient(String uri, String password, String certFingerprint) {
 
@@ -106,7 +104,7 @@ public class TeddyClient {
 
 
     public void connect() {
-        if (this.connectionState == State.CONNECTING) {
+        if (this.connectionState != State.DISCONNECTED) {
             return;
         }
 
@@ -143,7 +141,7 @@ public class TeddyClient {
             callbackHandler.onDisconnect();
         }
 
-        if (syncState == SyncState.ENABLED) {
+        if (!this.syncs.isEmpty()) {
             // Automatic reconnect after 1s if we are syncing
             new Timer().schedule(
                     new TimerTask() {
@@ -159,7 +157,9 @@ public class TeddyClient {
         // Generate random string for client challenge
         this.clientChallengeString = this.generateClientChallenge();
         Log.d(TAG, "Sending client challenge: " + this.clientChallengeString);
-        this.send(new ChallengeRequest(this.clientChallengeString), false);
+        Request request = new Request();
+        request.challenge = this.clientChallengeString;
+        this.send(request, false);
     }
 
     protected void onChallenge(String challenge) {
@@ -171,7 +171,9 @@ public class TeddyClient {
     public void sendLogin() {
         String loginToken = this.getLoginToken();
         Log.d(TAG, "Sending login token: " + loginToken);
-        this.send(new LoginRequest(loginToken), false);
+        Request request = new Request();
+        request.login = loginToken;
+        this.send(request, false);
     }
 
     protected void onLogin() {
@@ -183,11 +185,6 @@ public class TeddyClient {
             this.send(message);
         }
 
-        // Return to previous sync state
-        if (syncState == SyncState.ENABLED) {
-            this.enableSync();
-        }
-
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onLogin();
         }
@@ -195,7 +192,9 @@ public class TeddyClient {
 
     public void requestVersion() {
         Log.d(TAG, "Requesting version");
-        this.send(new InfoRequest("version"));
+        Request request = new Request();
+        request.info = new InfoRequest("version");
+        this.send(request);
     }
 
     protected void onVersion(String version) {
@@ -211,12 +210,14 @@ public class TeddyClient {
 
     public void requestWindowList() {
         Log.d(TAG, "Requesting window list");
-        this.send(new HDataRequest("buffer:gui_buffers(*)"));
+        Request request = new Request();
+        request.window = new WindowRequest();
+        request.item = new ItemRequest();
+        this.send(request);
     }
 
-    protected void onWindowList(CommonResponse hdata) {
+    protected void onWindowList(List<Window> windowList) {
         Log.d(TAG, "Received window list");
-        List<Window> windowList = hdata.toWindowList();
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onWindowList(windowList);
         }
@@ -231,44 +232,43 @@ public class TeddyClient {
     }
 
     public void requestLineList(long windowId, int size, int offset) {
-        this.send(new HDataRequest("buffer:0x" + windowId + "/own_lines/last_line(-" + size + "," + offset + ")/data"));
+        Request request = new Request();
+        request.line = new LineRequest();
+        request.line.get = new HashMap<>();
+        request.line.get.put(windowId, new LineRequest.Get());
+        this.send(request);
     }
 
-    protected void onLineList(CommonResponse hdata) {
-        List<Line> lineList = hdata.toLineList();
+    protected void onLineList(List<Line> lineList) {
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onLineList(lineList);
         }
     }
 
-    public void requestNickList(Window window) {
-        this.send(new NickListRequest(window.fullName));
+    public void sendInput(long windowId, String message) {
+        Request request = new Request();
+        request.input = new InputRequest(windowId, message);
+        this.send(request);
     }
 
-    protected void onNickList(CommonResponse nicklist) {
-        List<Nick> nickList = nicklist.toNickList();
-        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
-            callbackHandler.onNickList(nickList);
-        }
+    public void subscribeLines(long viewId) {
+        this.syncs.add(viewId);
+        Request request = new Request();
+        request.line = new LineRequest();
+        request.line.sub_add = new LineRequest.Sub();
+        request.line.sub_add.add = new LineRequest.Subscription();
+        request.line.sub_add.add.view.add(viewId);
+        this.send(request);
     }
 
-    public void sendInput(String windowName, String message) {
-        InputRequest input = new InputRequest(windowName, message);
-        this.send(input);
-    }
-
-    public void enableSync() {
-        this.syncState = SyncState.ENABLED;
-        this.send(new SyncRequest());
-    }
-
-    public void disableSync() {
-        this.send(new DesyncRequest());
-        this.syncState = SyncState.DISABLED;
-    }
-
-    public void sendQuit() {
-        this.send(new InputRequest("core.weechat", "/quit"));
+    public void unsubscribeLines(long viewId) {
+        Request request = new Request();
+        request.line = new LineRequest();
+        request.line.sub_rm = new LineRequest.Sub();
+        request.line.sub_rm.add = new LineRequest.Subscription();
+        request.line.sub_rm.add.view.add(viewId);
+        this.send(request);
+        this.syncs.remove(viewId);
     }
 
     public void registerCallbackHandler(TeddyCallbackHandler callbackHandler, String handlerKey) {

@@ -1,18 +1,18 @@
 package fi.iki.aeirola.teddyclientlib.models.request;
 
+import java.io.Serializable;
+
 /**
  * Created by aeirola on 15.10.2014.
  */
-public class InfoRequest extends BaseRequest {
+public class InfoRequest implements Serializable {
+    public String name;
 
-    public Info info = new Info();
+    public InfoRequest() {
 
-    public InfoRequest(String version) {
-        this.info.name = version;
     }
 
-    public static class Info {
-        public String name;
+    public InfoRequest(String name) {
+        this.name = name;
     }
-
 }

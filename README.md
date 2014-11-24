@@ -1,7 +1,7 @@
 Teddy Client
 ============
 
-Android client app for connecting to irssi instances running the `teddy.pl` remote access plugin over WebSockets.
+Android client app for connecting to irssi instances running the [`teddy-nu.pl`](https://github.com/ailin-nemui/teddy/tree/teddy-nu) remote access plugin over WebSockets.
 
 Currently based on the Autobahn|Android WebSocket client library and the Jackson JSON library.
 

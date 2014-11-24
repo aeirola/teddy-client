@@ -1,5 +1,7 @@
 package fi.iki.aeirola.teddyclientlib;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.util.Log;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -22,12 +24,13 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
-import fi.iki.aeirola.teddyclientlib.models.request.InputRequest;
-import fi.iki.aeirola.teddyclientlib.models.response.CommonResponse;
-import fi.iki.aeirola.teddyclientlib.models.response.HDataResponse;
+import fi.iki.aeirola.teddyclientlib.models.request.Request;
 import fi.iki.aeirola.teddyclientlib.models.response.InfoResponse;
-import fi.iki.aeirola.teddyclientlib.models.response.NickListResponse;
+import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
+import fi.iki.aeirola.teddyclientlib.models.response.Response;
+import fi.iki.aeirola.teddyclientlib.models.response.WindowResponse;
 
 /**
  * Created by Axel on 21.10.2014.
@@ -36,6 +39,7 @@ public class TestServer extends WebSocketServer {
     private static final String TAG = TestServer.class.getName();
     private final ObjectMapper mObjectMapper = new ObjectMapper();
 
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public TestServer(InetSocketAddress address) throws UnknownHostException {
         super(address, Collections.singletonList((Draft) new Draft_10()));
 
@@ -67,7 +71,7 @@ public class TestServer extends WebSocketServer {
         Log.i(TAG, "Client sent message: " + message);
 
         try {
-            CommonRequest request = this.mObjectMapper.readValue(new ByteBufferBackedInputStream(message), CommonRequest.class);
+            Request request = this.mObjectMapper.readValue(new ByteBufferBackedInputStream(message), Request.class);
             onMessage(conn, request);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
@@ -80,7 +84,7 @@ public class TestServer extends WebSocketServer {
         Log.i(TAG, "Client sent message: " + message);
 
         try {
-            CommonRequest request = this.mObjectMapper.readValue(message, CommonRequest.class);
+            Request request = this.mObjectMapper.readValue(message, Request.class);
             onMessage(conn, request);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
@@ -88,8 +92,8 @@ public class TestServer extends WebSocketServer {
         }
     }
 
-    public void onMessage(WebSocket conn, CommonRequest request) {
-        CommonResponse response = new CommonResponse();
+    public void onMessage(WebSocket conn, Request request) {
+        Response response = new Response();
         if (request.challenge != null) {
             response.challenge = "test-server-challenge";
         } else if (request.login != null) {
@@ -101,44 +105,35 @@ public class TestServer extends WebSocketServer {
             } else {
                 Log.w(TAG, "Unknown info request: " + request.info.name);
             }
-        } else if (request.hdata != null) {
-            response.hdata = new ArrayList<HDataResponse>();
-            if (request.hdata.path.equals("buffer:gui_buffers(*)")) {
-                // Windows
-                HDataResponse hdata = new HDataResponse();
-                hdata.pointers = new long[]{1L, 2L};
-                hdata.shortName = "(status)";
-                hdata.fullName = "empty.1";
-                response.hdata.add(hdata);
-            } else if (request.hdata.path.contains("buffer:0x")) {
-                // Messages
-                HDataResponse hdata = new HDataResponse();
-                hdata.highlight = 0;
-                hdata.buffer = 1L;
-                hdata.date = "";
-                hdata.fromnick = "test_user";
-                hdata.message = "hello there!";
-                response.hdata.add(hdata);
+        } else if (request.window != null) {
+            response.window = new WindowResponse();
+            if (request.window.get != null) {
+                response.window.get = new ArrayList<>();
+                WindowResponse.WindowData windowData = new WindowResponse.WindowData();
+                windowData.id = 1L;
+                windowData.view = 1000L;
+                windowData.name = "(status)";
+                response.window.get.add(windowData);
             }
-        } else if (request.nicklist != null) {
-            response.nicklist = new ArrayList<NickListResponse>();
-            NickListResponse nick = new NickListResponse();
-            nick.name = "test_user";
-
-            response.nicklist.add(nick);
+        } else if (request.line != null && request.line.get != null) {
+            response.line = new LineResponse();
+            if (request.line.get != null) {
+                response.line.get = new HashMap<>();
+                response.line.get.put(1000L, new ArrayList<LineResponse.LineData>());
+                LineResponse.LineData lineData = new LineResponse.LineData();
+                lineData.text = "22:00 <test_user> hello there!";
+                response.line.get.get(1000L).add(lineData);
+            } else if (request.line.sub_add != null) {
+                return;
+            } else if (request.line.sub_rm != null) {
+                return;
+            }
         } else if (request.input != null) {
-            InputRequest.Input input = request.input;
-            if (input.buffer != null && input.data != null) {
-                // Messages
-                response.hdata = new ArrayList<HDataResponse>();
-                HDataResponse hdata = new HDataResponse();
-                hdata.highlight = 0;
-                hdata.buffer = 1L;
-                hdata.date = "";
-                hdata.fromnick = "test_user";
-                hdata.message = input.data;
-                response.hdata.add(hdata);
-            }
+            response.lineAdded = new HashMap<>();
+            response.lineAdded.put(1000L, new ArrayList<LineResponse.LineData>());
+            LineResponse.LineData lineData = new LineResponse.LineData();
+            lineData.text = "22:00 <test_user> " + request.input.data;
+            response.lineAdded.get(1000L).add(lineData);
         } else {
             Log.w(TAG, "Unknown request");
         }

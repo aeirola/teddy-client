@@ -13,7 +13,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -69,11 +68,10 @@ public class WindowDetailFragment extends ListFragment {
             public void onLineList(final List<Line> lineList) {
                 Iterator<Line> lineIterator = lineList.iterator();
                 while (lineIterator.hasNext()) {
-                    if (lineIterator.next().windowId != WindowDetailFragment.this.window.id) {
+                    if (lineIterator.next().viewId != WindowDetailFragment.this.window.viewId) {
                         lineIterator.remove();
                     }
                 }
-                Collections.reverse(lineList);
 
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -126,8 +124,8 @@ public class WindowDetailFragment extends ListFragment {
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
             this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
-            mTeddyClient.requestLineList(window.id, 20);
-            mTeddyClient.enableSync();
+            mTeddyClient.requestLineList(window.viewId, 20);
+            mTeddyClient.subscribeLines(window.viewId);
         } else {
             Log.w(TAG, "Window argument not found!");
         }
@@ -137,7 +135,7 @@ public class WindowDetailFragment extends ListFragment {
     public void onStop() {
         super.onStop();
 
-        mTeddyClient.disableSync();
+        mTeddyClient.unsubscribeLines(window.viewId);
     }
 
 
@@ -146,7 +144,7 @@ public class WindowDetailFragment extends ListFragment {
             return;
         }
         String message = mEditText.getText().toString();
-        this.mTeddyClient.sendInput(window.fullName, message);
+        this.mTeddyClient.sendInput(window.id, message);
         mEditText.setText("");
     }
 }
