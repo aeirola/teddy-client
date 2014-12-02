@@ -10,7 +10,7 @@ public abstract class TeddyCallbackHandler {
     public void onConnect() {
     }
 
-    public void onLogin() {
+    public void onReconnect() {
     }
 
     public void onDisconnect() {

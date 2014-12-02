@@ -6,6 +6,8 @@ package fi.iki.aeirola.teddyclientlib;
 public enum State {
     DISCONNECTED,
     CONNECTING,
+    RECONNECTING,
     CONNECTED,
-    LOGGED_IN
+    RECONNECTED,
+    DISCONNECTING,
 }

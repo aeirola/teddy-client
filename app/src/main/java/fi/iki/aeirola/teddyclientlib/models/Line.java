@@ -6,6 +6,7 @@ import java.util.Date;
  * Created by aeirola on 15.10.2014.
  */
 public class Line {
+    public long id;
     public long viewId;
     public Date date;
     public String sender;

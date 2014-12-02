@@ -22,6 +22,7 @@ public class LineResponse implements Serializable {
         for (Map.Entry<Long, List<LineData>> entry : lineMap.entrySet()) {
             for (LineData lineData : entry.getValue()) {
                 Line line = new Line();
+                line.id = lineData.id;
                 line.viewId = entry.getKey();
                 line.date = new Date(lineData.time);
                 line.message = lineData.text;

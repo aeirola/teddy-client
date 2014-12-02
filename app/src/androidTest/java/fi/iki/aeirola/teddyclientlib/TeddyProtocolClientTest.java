@@ -15,7 +15,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  * Created by aeirola on 14.10.2014.
  */
 public class TeddyProtocolClientTest extends TestCase {
-    private static final int TIMEOUT = 5000;
+    private static final int TIMEOUT = 500000000;
 
     private String uri;
     private TestServer server;
@@ -34,13 +34,13 @@ public class TeddyProtocolClientTest extends TestCase {
         // Wait for server to start
         Thread.sleep(100);
 
-        this.uri = "ws://localhost:8080";
+        this.uri = "ws://localhost:8080/teddy";
         this.testLatch = new CountDownLatch(1);
     }
 
     @Override
     protected void tearDown() throws Exception {
-        this.server.stop(TIMEOUT);
+        this.server.stop();
     }
 
     protected void runTest(TeddyCallbackHandler callbackHandler) throws InterruptedException {
@@ -68,19 +68,10 @@ public class TeddyProtocolClientTest extends TestCase {
         });
     }
 
-    public void testLoginToServer() throws URISyntaxException, InterruptedException {
-        this.runTest(new TeddyCallbackHandler() {
-            @Override
-            public void onLogin() {
-                TeddyProtocolClientTest.this.endTest();
-            }
-        });
-    }
-
     public void testVersion() throws URISyntaxException, InterruptedException {
         this.runTest(new TeddyCallbackHandler() {
             @Override
-            public void onLogin() {
+            public void onConnect() {
                 teddyProtocol.requestVersion();
             }
 
@@ -96,7 +87,7 @@ public class TeddyProtocolClientTest extends TestCase {
     public void testWindows() throws URISyntaxException, InterruptedException {
         this.runTest(new TeddyCallbackHandler() {
             @Override
-            public void onLogin() {
+            public void onConnect() {
                 teddyProtocol.requestWindowList();
             }
 
@@ -112,13 +103,13 @@ public class TeddyProtocolClientTest extends TestCase {
     public void testLines() throws URISyntaxException, InterruptedException {
         this.runTest(new TeddyCallbackHandler() {
             @Override
-            public void onLogin() {
+            public void onConnect() {
                 teddyProtocol.requestWindowList();
             }
 
             @Override
             public void onWindowList(List<Window> windowList) {
-                teddyProtocol.requestLineList(windowList.get(0).id);
+                teddyProtocol.requestLineList(windowList.get(0).id, 10);
             }
 
             @Override
@@ -135,7 +126,7 @@ public class TeddyProtocolClientTest extends TestCase {
         final String input = "hello to you too!";
         this.runTest(new TeddyCallbackHandler() {
             @Override
-            public void onLogin() {
+            public void onConnect() {
                 teddyProtocol.requestWindowList();
             }
 

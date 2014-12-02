@@ -1,7 +1,5 @@
 package fi.iki.aeirola.teddyclientlib;
 
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.util.Log;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -9,21 +7,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
-
-import org.java_websocket.WebSocket;
-import org.java_websocket.drafts.Draft;
-import org.java_websocket.drafts.Draft_10;
-import org.java_websocket.framing.Framedata;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.server.WebSocketServer;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 
 import fi.iki.aeirola.teddyclientlib.models.request.Request;
@@ -35,64 +27,65 @@ import fi.iki.aeirola.teddyclientlib.models.response.WindowResponse;
 /**
  * Created by Axel on 21.10.2014.
  */
-public class TestServer extends WebSocketServer {
+public class TestServer {
     private static final String TAG = TestServer.class.getName();
+    private final AsyncHttpServer server;
+    private final InetSocketAddress address;
+    private final TestServerCallbackHandler callbackHandler = new TestServerCallbackHandler();
+
+    public TestServer(InetSocketAddress address) throws UnknownHostException {
+        this.address = address;
+
+        this.server = new AsyncHttpServer();
+        this.server.setErrorCallback(callbackHandler);
+        this.server.websocket("/teddy", "teddy-nu", callbackHandler);
+    }
+
+    public void start() {
+        Log.i(TAG, "Listening on " + address.getHostName() + ":" + address.getPort());
+        this.server.listen(address.getPort());
+    }
+
+    public void stop() {
+        this.server.stop();
+    }
+}
+
+class TestServerCallbackHandler implements AsyncHttpServer.WebSocketRequestCallback, WebSocket.StringCallback, WebSocket.PongCallback, CompletedCallback {
+    private static final String TAG = TestServerCallbackHandler.class.getName();
     private final ObjectMapper mObjectMapper = new ObjectMapper();
 
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    public TestServer(InetSocketAddress address) throws UnknownHostException {
-        super(address, Collections.singletonList((Draft) new Draft_10()));
-
+    {
         this.mObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    }
 
-        Log.i(TAG, "Listening on " + address.getHostString() + ":" + address.getPort());
+    private WebSocket webSocket;
+
+    @Override
+    public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
+        Log.i(TAG, "Client connected at " + request.getPath());
+        this.webSocket = webSocket;
+        webSocket.setStringCallback(this);
+        webSocket.setPongCallback(this);
+        webSocket.setClosedCallback(this);
     }
 
     @Override
-    public void onWebsocketMessageFragment(WebSocket conn, Framedata frame) {
-        Log.v(TAG, String.valueOf(frame));
-        super.onWebsocketMessageFragment(conn, frame);
-    }
-
-    @Override
-    public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        Log.i(TAG, "Client connected");
-    }
-
-    @Override
-    public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        Log.i(TAG, "Client connection closed: " + reason);
-    }
-
-    @Override
-    public void onMessage(WebSocket conn, ByteBuffer message) {
-        Log.i(TAG, "Client sent message: " + message);
+    public void onStringAvailable(String s) {
+        Log.i(TAG, "Client sent message: " + s);
 
         try {
-            Request request = this.mObjectMapper.readValue(new ByteBufferBackedInputStream(message), Request.class);
-            onMessage(conn, request);
+            Request request = this.mObjectMapper.readValue(s, Request.class);
+            onMessage(request);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
             return;
         }
     }
 
-    @Override
-    public void onMessage(WebSocket conn, String message) {
-        Log.i(TAG, "Client sent message: " + message);
-
-        try {
-            Request request = this.mObjectMapper.readValue(message, Request.class);
-            onMessage(conn, request);
-        } catch (IOException e) {
-            Log.e(TAG, "JSON parsing failed", e);
-            return;
-        }
-    }
-
-    public void onMessage(WebSocket conn, Request request) {
+    public void onMessage(Request request) {
         Response response = new Response();
         if (request.challenge != null) {
             response.challenge = "test-server-challenge";
@@ -115,7 +108,7 @@ public class TestServer extends WebSocketServer {
                 windowData.name = "(status)";
                 response.window.get.add(windowData);
             }
-        } else if (request.line != null && request.line.get != null) {
+        } else if (request.line != null) {
             response.line = new LineResponse();
             if (request.line.get != null) {
                 response.line.get = new HashMap<>();
@@ -138,9 +131,9 @@ public class TestServer extends WebSocketServer {
             Log.w(TAG, "Unknown request");
         }
 
-        if (conn.isOpen()) {
+        if (webSocket != null && webSocket.isOpen()) {
             try {
-                conn.send(this.mObjectMapper.writeValueAsString(response));
+                webSocket.send(this.mObjectMapper.writeValueAsString(response));
             } catch (JsonProcessingException e) {
                 Log.e(TAG, "JSON sending failed", e);
             }
@@ -148,7 +141,13 @@ public class TestServer extends WebSocketServer {
     }
 
     @Override
-    public void onError(WebSocket conn, Exception ex) {
-        Log.e(TAG, "Exception: ", ex);
+    public void onPongReceived(String s) {
+        Log.d(TAG, "Pong received " + s);
+    }
+
+    @Override
+    public void onCompleted(Exception ex) {
+        Log.w(TAG, "Closed " + ex.getMessage());
+        this.webSocket = null;
     }
 }

@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -20,6 +21,7 @@ import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Window;
+import fi.iki.aeirola.teddyclientlib.models.request.LineRequest;
 
 /**
  * A fragment representing a single Window detail screen.
@@ -42,6 +44,7 @@ public class WindowDetailFragment extends ListFragment {
     private Window window;
     private EditText mEditText;
     private ArrayAdapter mListAdapter;
+    private boolean fetchingMoreLines = false;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -66,6 +69,10 @@ public class WindowDetailFragment extends ListFragment {
         mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
             @Override
             public void onLineList(final List<Line> lineList) {
+                if (!isVisible() || lineList == null || lineList.isEmpty()) {
+                    return;
+                }
+
                 Iterator<Line> lineIterator = lineList.iterator();
                 while (lineIterator.hasNext()) {
                     if (lineIterator.next().viewId != WindowDetailFragment.this.window.viewId) {
@@ -73,13 +80,42 @@ public class WindowDetailFragment extends ListFragment {
                     }
                 }
 
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mListAdapter.addAll(lineList);
-                        WindowDetailFragment.this.scrollToBottom();
-                    }
-                });
+                if (mListAdapter.isEmpty() || lineList.get(0).date.after(((Line) mListAdapter.getItem(0)).date)) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mListAdapter.addAll(lineList);
+                            WindowDetailFragment.this.scrollToBottom();
+                        }
+                    });
+                } else {
+                    fetchingMoreLines = false;
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Add in reverse
+                            for (int i = lineList.size() - 1; i >= 0; i--) {
+                                mListAdapter.insert(lineList.get(i), 0);
+                            }
+                            setSelection(lineList.size());
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onReconnect() {
+                if (!isVisible()) {
+                    return;
+                }
+
+                LineRequest.Get lineRequest = new LineRequest.Get();
+                if (!mListAdapter.isEmpty()) {
+                    lineRequest.afterLine = ((Line) mListAdapter.getItem(mListAdapter.getCount() - 1)).id;
+                } else {
+                    lineRequest.count = 50;
+                }
+                mTeddyClient.requestLineList(window.viewId, lineRequest);
             }
         }, TAG);
     }
@@ -97,6 +133,23 @@ public class WindowDetailFragment extends ListFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView absListView, int i) {
+            }
+
+            @Override
+            public void onScroll(AbsListView absListView, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (!fetchingMoreLines && visibleItemCount != 0 && firstVisibleItem == 0) {
+                    LineRequest.Get lineRequest = new LineRequest.Get();
+                    lineRequest.beforeLine = ((Line) mListAdapter.getItem(0)).id;
+                    lineRequest.count = 50;
+                    mTeddyClient.requestLineList(window.viewId, lineRequest);
+                    fetchingMoreLines = true;
+                }
+            }
+        });
 
         mEditText = (EditText) getActivity().findViewById(R.id.window_detail_input);
         if (mEditText == null) {
@@ -124,8 +177,8 @@ public class WindowDetailFragment extends ListFragment {
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
             this.window = (Window) getArguments().getSerializable(ARG_WINDOW);
-            mTeddyClient.requestLineList(window.viewId, 20);
             mTeddyClient.subscribeLines(window.viewId);
+            mTeddyClient.requestLineList(window.viewId, 50);
         } else {
             Log.w(TAG, "Window argument not found!");
         }

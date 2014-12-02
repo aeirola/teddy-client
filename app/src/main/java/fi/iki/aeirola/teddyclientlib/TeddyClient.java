@@ -6,8 +6,6 @@ import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -17,8 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
@@ -39,27 +38,26 @@ import fi.iki.aeirola.teddyclientlib.models.request.WindowRequest;
  * Created by aeirola on 14.10.2014.
  */
 public class TeddyClient {
+
     private static final String TAG = TeddyClient.class.getName();
+    private static final int TIMEOUT = 15000;
+
     private static TeddyClient instance;
     private final Queue<Object> messageQueue = new ArrayDeque<>();
     private final Map<String, TeddyCallbackHandler> callbackHandlers = new HashMap<>();
+    private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
     private TeddyConnectionHandler mConnectionHandler;
-    private URI uri;
+    private String uri;
     private String password;
     private String certFingerprint;
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
-    private Set<Long> syncs = new HashSet<>();
+    private Set<Long> lineSyncs = new HashSet<>();
+    private long lastPingReceived;
 
     protected TeddyClient(String uri, String password, String certFingerprint) {
-
-        try {
-            this.uri = new URI(uri);
-        } catch (URISyntaxException e) {
-            Log.e(TAG, "Failed to setURI", e);
-            instance.uri = null;
-        }
+        this.uri = uri;
         this.password = password;
         this.certFingerprint = certFingerprint;
     }
@@ -85,23 +83,16 @@ public class TeddyClient {
         return instance;
     }
 
-
     public static void updatePreferences(Context context) {
         if (instance != null) {
             Log.i(TAG, "Updating preferences");
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            try {
-                instance.uri = new URI(pref.getString(SettingsActivity.KEY_PREF_URI, ""));
-            } catch (URISyntaxException e) {
-                Log.e(TAG, "Failed to update URI", e);
-                instance.uri = null;
-            }
+            instance.uri = pref.getString(SettingsActivity.KEY_PREF_URI, "");
             instance.password = pref.getString(SettingsActivity.KEY_PREF_PASSWORD, "");
             instance.certFingerprint = pref.getString(SettingsActivity.KEY_PREF_CERT_FINGERPRINT, "");
             instance.disconnect();
         }
     }
-
 
     public void connect() {
         if (this.connectionState != State.DISCONNECTED) {
@@ -119,37 +110,76 @@ public class TeddyClient {
         this.mConnectionHandler.connect();
     }
 
-    protected void onConnect() {
-        Log.d(TAG, "Connected");
-        this.connectionState = State.CONNECTED;
-        sendChallenge();
+    public void reconnect() {
+        Log.d(TAG, "Reconnecting to " + this.uri);
+        this.mConnectionHandler = new TeddyConnectionHandler(this.uri, this.certFingerprint, this);
+        this.mConnectionHandler.connect();
+    }
 
-        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
-            callbackHandler.onConnect();
+    protected void onConnect() {
+        switch (connectionState) {
+            case CONNECTING:
+                Log.d(TAG, "Connected");
+                break;
+            case RECONNECTING:
+                Log.d(TAG, "Reconnected");
+                break;
+            default:
+                Log.w(TAG, "Invalid state on connect " + connectionState);
         }
+
+        lastPingReceived = System.currentTimeMillis();
+        worker.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (connectionState != State.DISCONNECTED && System.currentTimeMillis() - lastPingReceived > TIMEOUT) {
+                    // Timed out
+                    timeout();
+                }
+            }
+        }, TIMEOUT, TIMEOUT, TimeUnit.MILLISECONDS);
+
+        sendChallenge();
+    }
+
+    private void timeout() {
+        Log.d(TAG, "Connection ping timeout");
+        this.connectionState = State.DISCONNECTING;
+        this.mConnectionHandler.close();
     }
 
     public void disconnect() {
         Log.d(TAG, "Disconnecting");
+        this.connectionState = State.DISCONNECTING;
+        this.lineSyncs.clear();
+        this.messageQueue.clear();
         this.mConnectionHandler.close();
     }
 
     protected void onDisconnect() {
         Log.d(TAG, "Disconnected");
+
+        if (this.connectionState == State.CONNECTING || this.connectionState == State.RECONNECTING) {
+            // Retry connection in half a second
+            worker.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    reconnect();
+                }
+            }, 500, TimeUnit.MILLISECONDS);
+            return;
+        }
+
+        if (!this.lineSyncs.isEmpty() || !this.messageQueue.isEmpty()) {
+            // Reconnect if there is something going on
+            this.connectionState = State.RECONNECTING;
+            this.reconnect();
+            return;
+        }
+
         this.connectionState = State.DISCONNECTED;
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onDisconnect();
-        }
-
-        if (!this.syncs.isEmpty()) {
-            // Automatic reconnect after 1s if we are syncing
-            new Timer().schedule(
-                    new TimerTask() {
-                        @Override
-                        public void run() {
-                            connect();
-                        }
-                    }, 1000);
         }
     }
 
@@ -178,15 +208,38 @@ public class TeddyClient {
 
     protected void onLogin() {
         Log.i(TAG, "Logged in!");
-        this.connectionState = State.LOGGED_IN;
-        // Send queued messages
+
+        // Update state
+        switch (connectionState) {
+            case CONNECTING:
+                connectionState = State.CONNECTED;
+                sendQueuedMessages();
+
+                for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+                    callbackHandler.onConnect();
+                }
+                break;
+            case RECONNECTING:
+                connectionState = State.RECONNECTED;
+                sendQueuedMessages();
+
+                for (long viewId : lineSyncs) {
+                    this.subscribeLines(viewId);
+                }
+
+                for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+                    callbackHandler.onReconnect();
+                }
+                break;
+            default:
+                Log.w(TAG, "Invalid connection state during login" + connectionState);
+        }
+    }
+
+    private void sendQueuedMessages() {
         Object message;
         while ((message = this.messageQueue.poll()) != null) {
             this.send(message);
-        }
-
-        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
-            callbackHandler.onLogin();
         }
     }
 
@@ -206,6 +259,7 @@ public class TeddyClient {
 
     protected void onPing() {
         Log.d(TAG, "Ping");
+        lastPingReceived = System.currentTimeMillis();
     }
 
     public void requestWindowList() {
@@ -223,19 +277,17 @@ public class TeddyClient {
         }
     }
 
-    public void requestLineList(long windowId) {
-        this.requestLineList(windowId, 10, 0);
+    public void requestLineList(long windowId, int count) {
+        LineRequest.Get lineRequest = new LineRequest.Get();
+        lineRequest.count = count;
+        this.requestLineList(windowId, lineRequest);
     }
 
-    public void requestLineList(long windowId, int size) {
-        this.requestLineList(windowId, size, 0);
-    }
-
-    public void requestLineList(long windowId, int size, int offset) {
+    public void requestLineList(long windowId, LineRequest.Get lineRequest) {
         Request request = new Request();
         request.line = new LineRequest();
         request.line.get = new HashMap<>();
-        request.line.get.put(windowId, new LineRequest.Get());
+        request.line.get.put(windowId, lineRequest);
         this.send(request);
     }
 
@@ -252,7 +304,7 @@ public class TeddyClient {
     }
 
     public void subscribeLines(long viewId) {
-        this.syncs.add(viewId);
+        this.lineSyncs.add(viewId);
         Request request = new Request();
         request.line = new LineRequest();
         request.line.sub_add = new LineRequest.Sub();
@@ -268,7 +320,7 @@ public class TeddyClient {
         request.line.sub_rm.add = new LineRequest.Subscription();
         request.line.sub_rm.add.view.add(viewId);
         this.send(request);
-        this.syncs.remove(viewId);
+        this.lineSyncs.remove(viewId);
     }
 
     public void registerCallbackHandler(TeddyCallbackHandler callbackHandler, String handlerKey) {
@@ -290,7 +342,7 @@ public class TeddyClient {
                 this.messageQueue.add(jsonObject);
                 break;
             case CONNECTING:
-            case CONNECTED:
+            case RECONNECTING:
                 if (waitForLogin) {
                     // Queue messages to be sent when logged in
                     this.messageQueue.add(jsonObject);
@@ -298,8 +350,11 @@ public class TeddyClient {
                     this.mConnectionHandler.send(jsonObject);
                 }
                 break;
-            case LOGGED_IN:
+            case CONNECTED:
+            case RECONNECTED:
                 this.mConnectionHandler.send(jsonObject);
+                break;
+            case DISCONNECTING:
                 break;
             default:
                 Log.w(TAG, "Unknown state while sending: " + this.connectionState);

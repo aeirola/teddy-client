@@ -6,13 +6,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.WebSocket;
 
 import java.io.IOException;
-import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -25,24 +26,28 @@ import javax.net.ssl.X509TrustManager;
 import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.Response;
 
+
 /**
  * Created by Axel on 26.10.2014.
  */
-class TeddyConnectionHandler extends WebSocketClient {
+class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, WebSocket.PongCallback, CompletedCallback, DataCallback {
     private static final String TAG = TeddyConnectionHandler.class.getName();
 
+    private final String uri;
     private final TeddyClient teddyClient;
     private final ObjectMapper mObjectMapper = new ObjectMapper();
+    public WebSocket webSocket;
 
-    public TeddyConnectionHandler(URI uri, String certFingerprint, TeddyClient teddyClient) {
-        super(uri);
+    public TeddyConnectionHandler(String uri, String certFingerprint, TeddyClient teddyClient) {
         this.teddyClient = teddyClient;
+        this.uri = uri;
 
         this.mObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         this.mObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        if (uri != null && uri.getScheme() != null && uri.getScheme().equals("wss")) {
+        if (uri != null && uri.startsWith("wss") &&
+                certFingerprint != null && !certFingerprint.isEmpty()) {
             trustFingerprint(certFingerprint.replace(":", ""));
         }
     }
@@ -51,46 +56,101 @@ class TeddyConnectionHandler extends WebSocketClient {
         try {
             TrustManager[] fingerprintTm = new TrustManager[]{new FingerprintTrustManager(fingerprint)};
             SSLContext sc = SSLContext.getInstance("TLS");
-            sc.init(null, fingerprintTm, new java.security.SecureRandom());
-            this.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sc));
+            sc.init(null, fingerprintTm, null);
+            // XXX: Not sure why both need to be set here....
+            AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setSSLContext(sc);
+            AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setTrustManagers(fingerprintTm);
         } catch (Exception e) {
             Log.e(TAG, "Failed to set trust manager", e);
         }
     }
 
-    @Override
-    public void onOpen(ServerHandshake handshakedata) {
-        Log.v(TAG, "Connected!");
-        teddyClient.onConnect();
+    public void connect() {
+        AsyncHttpClient.getDefaultInstance().websocket(this.uri, "teddy-nu", this);
+    }
+
+    public void close() {
+        if (this.webSocket != null && this.webSocket.isOpen())
+            this.webSocket.close();
+    }
+
+    public void send(Object jsonObject) {
+        try {
+            String message = this.mObjectMapper.writeValueAsString(jsonObject);
+            Log.v(TAG, "Sending: " + message);
+            this.webSocket.send(message);
+        } catch (IOException e) {
+            Log.e(TAG, "Message sending failed", e);
+        }
     }
 
     @Override
-    public void onClose(int code, String reason, boolean remote) {
-        Log.v(TAG, "Closed! " + code + " " + reason);
+    public void onCompleted(Exception ex, WebSocket webSocket) {
+        if (ex != null) {
+            this.onCompleted(ex);
+        } else {
+            this.webSocket = webSocket;
+            if (webSocket != null) {
+                webSocket.setStringCallback(this);
+                webSocket.setDataCallback(this);
+                webSocket.setPongCallback(this);
+                webSocket.setClosedCallback(this);
+            }
+
+            Log.v(TAG, "Connected!");
+            teddyClient.onConnect();
+        }
+    }
+
+    @Override
+    public void onCompleted(Exception ex) {
+        if (ex != null) {
+            Log.w(TAG, ex.toString());
+        } else {
+            Log.i(TAG, "Connection closed");
+        }
+
+        this.webSocket = null;
         teddyClient.onDisconnect();
     }
 
     @Override
-    public void onError(Exception ex) {
-        Log.e(TAG, "Error in websocket connection", ex);
-    }
+    public void onStringAvailable(String s) {
+        Log.v(TAG, "Received: " + s);
 
-    @Override
-    public void onMessage(String payload) {
-        Log.v(TAG, "Received: " + payload);
-
-        if (payload.equals("{}")) {
+        if (s.equals("{}")) {
             teddyClient.onPing();
             return;
         }
 
         Response response;
         try {
-            response = mObjectMapper.readValue(payload, Response.class);
+            response = mObjectMapper.readValue(s, Response.class);
         } catch (IOException e) {
             Log.e(TAG, "JSON parsing failed", e);
             return;
         }
+
+        this.onMessage(response);
+    }
+
+    @Override
+    public void onDataAvailable(DataEmitter emitter, ByteBufferList byteBufferList) {
+        Log.v(TAG, "Received bytes");
+        Response response;
+        try {
+            response = mObjectMapper.readValue(byteBufferList.getAllByteArray(), Response.class);
+        } catch (IOException e) {
+            Log.e(TAG, "JSON parsing failed", e);
+            return;
+        } finally {
+            byteBufferList.recycle();
+        }
+
+        this.onMessage(response);
+    }
+
+    public void onMessage(Response response) {
 
         if (response.id != null) {
             switch (response.id) {
@@ -107,6 +167,8 @@ class TeddyConnectionHandler extends WebSocketClient {
         if (response.login != null) {
             if (response.login) {
                 teddyClient.onLogin();
+            } else {
+                Log.i(TAG, "Login failed");
             }
         }
 
@@ -130,15 +192,11 @@ class TeddyConnectionHandler extends WebSocketClient {
 
     }
 
-    public void send(Object jsonObject) {
-        try {
-            byte[] message = this.mObjectMapper.writeValueAsBytes(jsonObject);
-            Log.v(TAG, "Sending: " + new String(message));
-            this.send(message);
-        } catch (IOException e) {
-            Log.e(TAG, "Message sending failed", e);
-        }
+    @Override
+    public void onPongReceived(String s) {
+        Log.v(TAG, "Pong received " + s);
     }
+
 }
 
 

@@ -16,6 +16,8 @@ public class LineRequest implements Serializable {
     public static class Get {
         public int lv = 1;
         public int count = 10;
+        public Long afterLine;
+        public Long beforeLine;
         public boolean text = true;
     }
 
