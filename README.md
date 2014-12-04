@@ -9,17 +9,10 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 
 TODO
 ----
-- TravisCI
- - Upload to g-drive?
 
-------- Field test -------
-
-- Improve line rendering
- - Handle irssi escapes
- - TextView_autoLink
+- Hide input field when reading scrollback
 - Improved server event handling
  - Use of Loaders and Cursors for data updates?
- - Register only to required events
 - Visual tweaking
  - Material design
  - Transitions
@@ -29,12 +22,9 @@ TODO
  - Do network requests and JSON (de)serialization there
  - Communication using Handlers?
 - Improve connection handling
- - Timeout detection
-  - No ping in 15 sec
  - Disconnection
   - On inactivity (~5min)
  - Network state detection
- - Line list resync on reconnect
 
 ----- Release? -----
 

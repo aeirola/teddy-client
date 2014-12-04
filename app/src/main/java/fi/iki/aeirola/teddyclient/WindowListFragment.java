@@ -73,8 +73,8 @@ public class WindowListFragment extends ListFragment {
                     public void run() {
                         setListAdapter(new ArrayAdapter<Window>(
                                 getActivity(),
-                                android.R.layout.simple_list_item_activated_1,
-                                android.R.id.text1,
+                                R.layout.window_list_line,
+                                R.id.window_list_line,
                                 windowList));
                     }
                 });

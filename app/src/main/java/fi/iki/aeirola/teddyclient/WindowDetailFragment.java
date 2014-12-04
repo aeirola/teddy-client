@@ -11,6 +11,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -61,8 +62,8 @@ public class WindowDetailFragment extends ListFragment {
         this.mTeddyClient.connect();
         this.mListAdapter = new ArrayAdapter<Line>(
                 getActivity(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
+                R.layout.window_detail_line,
+                R.id.window_detail_line,
                 new ArrayList<Line>());
         setListAdapter(this.mListAdapter);
 
@@ -72,7 +73,6 @@ public class WindowDetailFragment extends ListFragment {
                 if (!isVisible() || lineList == null || lineList.isEmpty()) {
                     return;
                 }
-
                 Iterator<Line> lineIterator = lineList.iterator();
                 while (lineIterator.hasNext()) {
                     if (lineIterator.next().viewId != WindowDetailFragment.this.window.viewId) {
@@ -85,7 +85,14 @@ public class WindowDetailFragment extends ListFragment {
                         @Override
                         public void run() {
                             mListAdapter.addAll(lineList);
-                            WindowDetailFragment.this.scrollToBottom();
+
+                            // Only scroll if we are near the bottom
+                            ListView listView = getListView();
+                            int last = listView.getLastVisiblePosition();
+                            int size = listView.getCount();
+                            if (last < 0 || size - last <= 3) {
+                                WindowDetailFragment.this.scrollToBottom();
+                            }
                         }
                     });
                 } else {
@@ -171,6 +178,8 @@ public class WindowDetailFragment extends ListFragment {
     @Override
     public void onStart() {
         super.onStart();
+
+        mListAdapter.clear();
 
         if (getArguments().containsKey(ARG_WINDOW)) {
             // Load the dummy content specified by the fragment

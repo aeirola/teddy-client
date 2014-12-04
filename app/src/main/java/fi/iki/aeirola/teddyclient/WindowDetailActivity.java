@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 
+import fi.iki.aeirola.teddyclientlib.models.Window;
+
 
 /**
  * An activity representing a single Window detail screen. This
@@ -39,8 +41,9 @@ public class WindowDetailActivity extends Activity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putSerializable(WindowDetailFragment.ARG_WINDOW,
-                    getIntent().getSerializableExtra(WindowDetailFragment.ARG_WINDOW));
+            Window window = (Window) getIntent().getSerializableExtra(WindowDetailFragment.ARG_WINDOW);
+            setTitle(window.name);
+            arguments.putSerializable(WindowDetailFragment.ARG_WINDOW, window);
             WindowDetailFragment fragment = new WindowDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()
