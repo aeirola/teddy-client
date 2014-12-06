@@ -5,4 +5,5 @@
     android:layout_height="match_parent"
     android:autoLink="web"
     android:gravity="center_vertical"
-    android:padding="3px" />
+    android:padding="3dp"
+    android:textIsSelectable="true" />

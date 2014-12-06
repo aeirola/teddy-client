@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import fi.iki.aeirola.teddyclient.utils.IrssiLineAdapter;
 import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Line;
@@ -44,7 +45,7 @@ public class WindowDetailFragment extends ListFragment {
     private TeddyClient mTeddyClient;
     private Window window;
     private EditText mEditText;
-    private ArrayAdapter mListAdapter;
+    private ArrayAdapter<Line> mListAdapter;
     private boolean fetchingMoreLines = false;
 
     /**
@@ -60,7 +61,7 @@ public class WindowDetailFragment extends ListFragment {
 
         this.mTeddyClient = TeddyClient.getInstance(getActivity());
         this.mTeddyClient.connect();
-        this.mListAdapter = new ArrayAdapter<Line>(
+        this.mListAdapter = new IrssiLineAdapter(
                 getActivity(),
                 R.layout.window_detail_line,
                 R.id.window_detail_line,
@@ -80,7 +81,7 @@ public class WindowDetailFragment extends ListFragment {
                     }
                 }
 
-                if (mListAdapter.isEmpty() || lineList.get(0).date.after(((Line) mListAdapter.getItem(0)).date)) {
+                if (mListAdapter.isEmpty() || lineList.get(0).date.after(mListAdapter.getItem(0).date)) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -118,7 +119,7 @@ public class WindowDetailFragment extends ListFragment {
 
                 LineRequest.Get lineRequest = new LineRequest.Get();
                 if (!mListAdapter.isEmpty()) {
-                    lineRequest.afterLine = ((Line) mListAdapter.getItem(mListAdapter.getCount() - 1)).id;
+                    lineRequest.afterLine = mListAdapter.getItem(mListAdapter.getCount() - 1).id;
                 } else {
                     lineRequest.count = 50;
                 }
