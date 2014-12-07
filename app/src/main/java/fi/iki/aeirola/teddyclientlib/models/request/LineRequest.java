@@ -26,8 +26,8 @@ public class LineRequest implements Serializable {
     }
 
     public static class Subscription {
+        public final List<Long> view = new ArrayList<>();
         public int lv = 0;
-        public List<Long> view = new ArrayList<>();
         public boolean text = true;
     }
 }

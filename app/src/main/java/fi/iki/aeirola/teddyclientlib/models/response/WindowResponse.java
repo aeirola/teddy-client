@@ -17,9 +17,9 @@ public class WindowResponse implements Serializable {
             return new ArrayList<>();
         }
 
-        List<Window> windowList = new ArrayList<Window>(this.get.size());
+        List<Window> windowList = new ArrayList<>(this.get.size());
         for (WindowData data : this.get) {
-            List<ItemResponse.ItemData> itemDatas = new ArrayList<ItemResponse.ItemData>();
+            List<ItemResponse.ItemData> itemDatas = new ArrayList<>();
             if (item != null) {
                 for (ItemResponse.ItemData itemData : item.get) {
                     if (itemData.window == data.id) {

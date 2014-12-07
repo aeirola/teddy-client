@@ -47,6 +47,7 @@ public class TeddyClient {
     private final Queue<Object> messageQueue = new ArrayDeque<>();
     private final Map<String, TeddyCallbackHandler> callbackHandlers = new HashMap<>();
     private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
+    private final Set<Long> lineSyncs = new HashSet<>();
     private TeddyConnectionHandler mConnectionHandler;
     private String uri;
     private String password;
@@ -54,7 +55,6 @@ public class TeddyClient {
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
-    private Set<Long> lineSyncs = new HashSet<>();
     private long lastPingReceived;
 
     protected TeddyClient(String uri, String password, String certFingerprint) {

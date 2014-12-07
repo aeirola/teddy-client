@@ -14,7 +14,6 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -31,10 +30,11 @@ public class TestServer {
     private static final String TAG = TestServer.class.getName();
     private final AsyncHttpServer server;
     private final InetSocketAddress address;
-    private final TestServerCallbackHandler callbackHandler = new TestServerCallbackHandler();
 
-    public TestServer(InetSocketAddress address) throws UnknownHostException {
+    public TestServer(InetSocketAddress address) {
         this.address = address;
+
+        TestServerCallbackHandler callbackHandler = new TestServerCallbackHandler();
 
         this.server = new AsyncHttpServer();
         this.server.setErrorCallback(callbackHandler);

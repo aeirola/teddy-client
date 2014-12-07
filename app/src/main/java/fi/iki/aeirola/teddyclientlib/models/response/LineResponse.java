@@ -33,7 +33,7 @@ public class LineResponse implements Serializable {
     }
 
     public List<Line> toList() {
-        return this.toList(this.get);
+        return toList(this.get);
     }
 
     public static class LineData {

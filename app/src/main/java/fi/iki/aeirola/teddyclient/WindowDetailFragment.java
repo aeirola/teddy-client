@@ -134,8 +134,7 @@ public class WindowDetailFragment extends ListFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_window_detail, container, false);
-        return view;
+        return inflater.inflate(R.layout.fragment_window_detail, container, false);
     }
 
     @Override
@@ -151,7 +150,7 @@ public class WindowDetailFragment extends ListFragment {
             public void onScroll(AbsListView absListView, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 if (!fetchingMoreLines && visibleItemCount != 0 && firstVisibleItem == 0) {
                     LineRequest.Get lineRequest = new LineRequest.Get();
-                    lineRequest.beforeLine = ((Line) mListAdapter.getItem(0)).id;
+                    lineRequest.beforeLine = mListAdapter.getItem(0).id;
                     lineRequest.count = 50;
                     mTeddyClient.requestLineList(window.viewId, lineRequest);
                     fetchingMoreLines = true;

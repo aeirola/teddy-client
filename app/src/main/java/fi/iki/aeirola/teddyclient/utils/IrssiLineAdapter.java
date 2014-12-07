@@ -31,14 +31,14 @@ import fi.iki.aeirola.teddyclientlib.models.Line;
 public class IrssiLineAdapter extends ArrayAdapter<Line> {
     private static final String TAG = IrssiLineAdapter.class.getName();
     private final LayoutInflater mInflater;
-    private Map<Long, SpannableStringBuilder> spanCache = new HashMap<>();
+    private final Map<Long, SpannableStringBuilder> spanCache = new HashMap<>();
 
     public IrssiLineAdapter(Activity activity) {
         super(activity, R.layout.window_detail_line, new ArrayList<Line>());
         mInflater = LayoutInflater.from(activity);
     }
 
-    private static final int ansiBitFlip(int x) {
+    private static int ansiBitFlip(int x) {
         return ((x & 8) | (x & 4) >> 2 | (x & 2) | (x & 1) << 2);
     }
 
@@ -47,7 +47,7 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
         ViewHolder viewHolder;
 
         if (convertView == null) {
-            convertView = (View) mInflater.inflate(R.layout.window_detail_line, parent, false);
+            convertView = mInflater.inflate(R.layout.window_detail_line, parent, false);
 
             viewHolder = new ViewHolder();
             viewHolder.textView = (TextView) convertView;
