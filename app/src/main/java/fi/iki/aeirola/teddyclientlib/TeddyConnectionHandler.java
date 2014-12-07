@@ -187,7 +187,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
         }
 
         if (response.lineAdded != null) {
-            teddyClient.onLineList(LineResponse.toList(response.lineAdded));
+            teddyClient.onNewLines(LineResponse.toList(response.lineAdded));
         }
 
     }

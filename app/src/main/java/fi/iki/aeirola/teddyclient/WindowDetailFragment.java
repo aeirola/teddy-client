@@ -69,45 +69,59 @@ public class WindowDetailFragment extends ListFragment {
                 if (!isVisible() || lineList == null || lineList.isEmpty()) {
                     return;
                 }
+
+                filterLines(lineList);
+
+                // Old lines, added at top of list
+                fetchingMoreLines = false;
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Add in reverse
+                        for (int i = lineList.size() - 1; i >= 0; i--) {
+                            mListAdapter.insert(lineList.get(i), 0);
+                        }
+                        setSelection(lineList.size());
+                    }
+                });
+
+                mTeddyClient.resetWindowActivity(window.id);
+            }
+
+            @Override
+            public void onNewLines(final List<Line> lineList) {
+                if (!isVisible() || lineList == null || lineList.isEmpty()) {
+                    return;
+                }
+
+                filterLines(lineList);
+
+                // New lines, added at bottom of list
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListAdapter.addAll(lineList);
+
+                        // Only scroll if we are near the bottom
+                        ListView listView = getListView();
+                        int last = listView.getLastVisiblePosition();
+                        int size = listView.getCount();
+                        if (last < 0 || size - last <= 3) {
+                            WindowDetailFragment.this.scrollToBottom();
+                        }
+                    }
+                });
+
+                // Reset activity for window
+                mTeddyClient.resetWindowActivity(window.id);
+            }
+
+            private void filterLines(List<Line> lineList) {
                 Iterator<Line> lineIterator = lineList.iterator();
                 while (lineIterator.hasNext()) {
                     if (lineIterator.next().viewId != WindowDetailFragment.this.window.viewId) {
                         lineIterator.remove();
                     }
-                }
-
-                if (mListAdapter.isEmpty() || lineList.get(0).date.after(mListAdapter.getItem(0).date)) {
-                    // New lines, added at bottom of list
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mListAdapter.addAll(lineList);
-
-                            // Only scroll if we are near the bottom
-                            ListView listView = getListView();
-                            int last = listView.getLastVisiblePosition();
-                            int size = listView.getCount();
-                            if (last < 0 || size - last <= 3) {
-                                WindowDetailFragment.this.scrollToBottom();
-                            }
-                        }
-                    });
-
-                    // Reset activity for window
-                    mTeddyClient.resetWindowActivity(window.id);
-                } else {
-                    // Old lines, added at top of list
-                    fetchingMoreLines = false;
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // Add in reverse
-                            for (int i = lineList.size() - 1; i >= 0; i--) {
-                                mListAdapter.insert(lineList.get(i), 0);
-                            }
-                            setSelection(lineList.size());
-                        }
-                    });
                 }
             }
 

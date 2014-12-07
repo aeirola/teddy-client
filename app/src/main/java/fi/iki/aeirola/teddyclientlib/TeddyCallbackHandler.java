@@ -24,4 +24,7 @@ public abstract class TeddyCallbackHandler {
 
     public void onLineList(List<Line> lineList) {
     }
+
+    public void onNewLines(List<Line> lineList) {
+    }
 }

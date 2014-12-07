@@ -308,6 +308,12 @@ public class TeddyClient {
         }
     }
 
+    protected void onNewLines(List<Line> lineList) {
+        for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+            callbackHandler.onNewLines(lineList);
+        }
+    }
+
     public void sendInput(long windowId, String message) {
         Request request = new Request();
         request.input = new InputRequest(windowId, message);

@@ -15,7 +15,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  * Created by aeirola on 14.10.2014.
  */
 public class TeddyProtocolClientTest extends TestCase {
-    private static final int TIMEOUT = 500000000;
+    private static final int TIMEOUT = 5000;
 
     private String uri;
     private TestServer server;
@@ -138,7 +138,7 @@ public class TeddyProtocolClientTest extends TestCase {
             }
 
             @Override
-            public void onLineList(List<Line> lineList) {
+            public void onNewLines(List<Line> lineList) {
                 receivedLineList = lineList;
                 endTest();
             }
