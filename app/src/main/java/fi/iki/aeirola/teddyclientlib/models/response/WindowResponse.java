@@ -38,6 +38,7 @@ public class WindowResponse implements Serializable {
             } else {
                 window.name = String.valueOf(data.refnum);
             }
+            window.activity = Window.Activity.values()[data.dataLevel];
             windowList.add(window);
         }
 
@@ -49,5 +50,6 @@ public class WindowResponse implements Serializable {
         public long view;
         public int refnum;
         public String name;
+        public int dataLevel;
     }
 }

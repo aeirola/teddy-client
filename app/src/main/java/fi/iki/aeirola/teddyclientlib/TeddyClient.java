@@ -9,6 +9,7 @@ import android.util.Log;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -266,6 +267,7 @@ public class TeddyClient {
         Log.d(TAG, "Requesting window list");
         Request request = new Request();
         request.window = new WindowRequest();
+        request.window.get = new WindowRequest.Get();
         request.item = new ItemRequest();
         this.send(request);
     }
@@ -275,6 +277,15 @@ public class TeddyClient {
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onWindowList(windowList);
         }
+    }
+
+    public void resetWindowActivity(long windowId) {
+        Log.d(TAG, "Reseting window activity for " + windowId);
+        Request request = new Request();
+        request.window = new WindowRequest();
+        request.window.dehilight = new ArrayList<>();
+        request.window.dehilight.add(windowId);
+        this.send(request);
     }
 
     public void requestLineList(long windowId, int count) {

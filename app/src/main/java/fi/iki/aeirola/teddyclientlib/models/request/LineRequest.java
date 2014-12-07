@@ -14,7 +14,7 @@ public class LineRequest implements Serializable {
     public Sub sub_rm;
 
     public static class Get {
-        public int lv = 1;
+        public int lv = 0;
         public int count = 10;
         public Long afterLine;
         public Long beforeLine;
@@ -26,7 +26,7 @@ public class LineRequest implements Serializable {
     }
 
     public static class Subscription {
-        public int lv = 1;
+        public int lv = 0;
         public List<Long> view = new ArrayList<>();
         public boolean text = true;
     }

@@ -14,7 +14,6 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,11 +60,7 @@ public class WindowDetailFragment extends ListFragment {
 
         this.mTeddyClient = TeddyClient.getInstance(getActivity());
         this.mTeddyClient.connect();
-        this.mListAdapter = new IrssiLineAdapter(
-                getActivity(),
-                R.layout.window_detail_line,
-                R.id.window_detail_line,
-                new ArrayList<Line>());
+        this.mListAdapter = new IrssiLineAdapter(getActivity());
         setListAdapter(this.mListAdapter);
 
         mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
@@ -82,6 +77,7 @@ public class WindowDetailFragment extends ListFragment {
                 }
 
                 if (mListAdapter.isEmpty() || lineList.get(0).date.after(mListAdapter.getItem(0).date)) {
+                    // New lines, added at bottom of list
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -96,7 +92,11 @@ public class WindowDetailFragment extends ListFragment {
                             }
                         }
                     });
+
+                    // Reset activity for window
+                    mTeddyClient.resetWindowActivity(window.id);
                 } else {
+                    // Old lines, added at top of list
                     fetchingMoreLines = false;
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -134,7 +134,7 @@ public class WindowDetailFragment extends ListFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_window_detail, null);
+        View view = inflater.inflate(R.layout.fragment_window_detail, container, false);
         return view;
     }
 

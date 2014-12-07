@@ -5,7 +5,6 @@ import android.app.ListFragment;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import java.util.List;
@@ -71,10 +70,8 @@ public class WindowListFragment extends ListFragment {
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        setListAdapter(new ArrayAdapter<Window>(
+                        setListAdapter(new WindowListLineAdapter(
                                 getActivity(),
-                                R.layout.window_list_line,
-                                R.id.window_list_line,
                                 windowList));
                     }
                 });

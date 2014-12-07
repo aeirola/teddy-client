@@ -9,6 +9,7 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +17,8 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import fi.iki.aeirola.teddyclient.R;
 import fi.iki.aeirola.teddyclientlib.models.Line;
@@ -28,9 +31,10 @@ import fi.iki.aeirola.teddyclientlib.models.Line;
 public class IrssiLineAdapter extends ArrayAdapter<Line> {
     private static final String TAG = IrssiLineAdapter.class.getName();
     private final LayoutInflater mInflater;
+    private Map<Long, SpannableStringBuilder> spanCache = new HashMap<>();
 
-    public IrssiLineAdapter(Activity activity, int window_detail_line, int window_detail_line1, ArrayList<Line> lines) {
-        super(activity, window_detail_line, window_detail_line1, lines);
+    public IrssiLineAdapter(Activity activity) {
+        super(activity, R.layout.window_detail_line, new ArrayList<Line>());
         mInflater = LayoutInflater.from(activity);
     }
 
@@ -40,13 +44,36 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        TextView view = (TextView) mInflater.inflate(R.layout.window_detail_line, null);
+        ViewHolder viewHolder;
+
+        if (convertView == null) {
+            convertView = (View) mInflater.inflate(R.layout.window_detail_line, parent, false);
+
+            viewHolder = new ViewHolder();
+            viewHolder.textView = (TextView) convertView;
+
+            convertView.setTag(viewHolder);
+        } else {
+            viewHolder = (ViewHolder) convertView.getTag();
+        }
+
         Line line = this.getItem(position);
-        view.setText(this.buildSpannable(line, ColorMaps.ANSI_FG_COLOR_MAP), TextView.BufferType.EDITABLE);
-        return view;
+        viewHolder.textView.setText(this.getSpannable(line, ColorMaps.ANSI_FG_COLOR_MAP), TextView.BufferType.EDITABLE);
+        return convertView;
+    }
+
+    private SpannableStringBuilder getSpannable(Line line, int[] colorMap) {
+        SpannableStringBuilder mSpanned = spanCache.get(line.id);
+        if (mSpanned == null) {
+            mSpanned = buildSpannable(line, colorMap);
+            spanCache.put(line.id, mSpanned);
+        }
+
+        return mSpanned;
     }
 
     private SpannableStringBuilder buildSpannable(Line line, int[] colorMap) {
+        Log.v(TAG, "Building span for " + line.id);
         SpannableStringBuilder mSpanned = new SpannableStringBuilder();
         String message = line.message;
 
@@ -106,7 +133,7 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
                     int color = -1;
                     boolean bg = false;
                     switch (message.charAt(k)) {
-		                /* extended colour */
+                        /* extended colour */
                         case '.':
                             bg = false;
                             color = 0x10 - 0x3f + message.charAt(k + 1);
@@ -223,5 +250,9 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
         }
 
         return mSpanned;
+    }
+
+    private static class ViewHolder {
+        TextView textView;
     }
 }
