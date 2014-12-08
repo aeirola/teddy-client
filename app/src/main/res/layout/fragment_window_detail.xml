@@ -12,6 +12,7 @@
         android:layout_weight="1"
         android:stackFromBottom="true"
         android:textIsSelectable="true"
+        android:transcriptMode="normal"
         tools:context=".WindowDetailFragment" />
 
     <EditText

@@ -106,9 +106,6 @@ public class WindowDetailFragment extends ListFragment {
                         ListView listView = getListView();
                         int last = listView.getLastVisiblePosition();
                         int size = listView.getCount();
-                        if (last < 0 || size - last <= 3) {
-                            WindowDetailFragment.this.scrollToBottom();
-                        }
                     }
                 });
 
@@ -140,10 +137,6 @@ public class WindowDetailFragment extends ListFragment {
                 mTeddyClient.requestLineList(window.viewId, lineRequest);
             }
         }, TAG);
-    }
-
-    private void scrollToBottom() {
-        setSelection(mListAdapter.getCount() - 1);
     }
 
     @Override

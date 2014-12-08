@@ -42,15 +42,17 @@ public class WindowListLineAdapter extends ArrayAdapter<Window> {
         }
 
         viewHolder.textView.setText(window.toString(), TextView.BufferType.NORMAL);
-
         switch (window.activity) {
             case PASSIVE:
+                viewHolder.activityView.setVisibility(View.VISIBLE);
                 viewHolder.activityView.setTextColor(Color.GRAY);
                 break;
             case ACTIVE:
+                viewHolder.activityView.setVisibility(View.VISIBLE);
                 viewHolder.activityView.setTextColor(Color.BLACK);
                 break;
             case HILIGHT:
+                viewHolder.activityView.setVisibility(View.VISIBLE);
                 viewHolder.activityView.setTextColor(Color.RED);
                 break;
             case INACTIVE:
