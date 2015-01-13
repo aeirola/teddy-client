@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 
-import fi.iki.aeirola.teddyclientlib.models.Window;
+import fi.iki.aeirola.teddyclient.fragments.WindowDetailFragment;
 
 
 /**
@@ -15,7 +15,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
  * in a {@link WindowListActivity}.
  * <p/>
  * This activity is mostly just a 'shell' activity containing nothing
- * more than a {@link WindowDetailFragment}.
+ * more than a {@link fi.iki.aeirola.teddyclient.fragments.WindowDetailFragment}.
  */
 public class WindowDetailActivity extends Activity {
 
@@ -41,9 +41,9 @@ public class WindowDetailActivity extends Activity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            Window window = (Window) getIntent().getSerializableExtra(WindowDetailFragment.ARG_WINDOW);
-            setTitle(window.name);
-            arguments.putSerializable(WindowDetailFragment.ARG_WINDOW, window);
+            long window_id = getIntent().getLongExtra(WindowDetailFragment.ARG_WINDOW, 0);
+            //setTitle(window.name);
+            arguments.putLong(WindowDetailFragment.ARG_WINDOW, window_id);
             WindowDetailFragment fragment = new WindowDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()

@@ -1,4 +1,4 @@
-package fi.iki.aeirola.teddyclient.utils;
+package fi.iki.aeirola.teddyclient.views.adapters;
 
 import android.app.Activity;
 import android.graphics.Color;
@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import fi.iki.aeirola.teddyclient.R;
+import fi.iki.aeirola.teddyclient.utils.ColorMaps;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 
 /**
@@ -169,7 +170,7 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
                         continue;
                     }
                     if (message.charAt(k) == '#') {
-		                /* html colour */
+                        /* html colour */
                         k++;
                         int rgbx[] = {0, 0, 0, 0};
                         if (k + 4 >= len) {

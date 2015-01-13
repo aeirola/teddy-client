@@ -1,28 +1,28 @@
-package fi.iki.aeirola.teddyclient;
+package fi.iki.aeirola.teddyclient.fragments;
 
 import android.app.Activity;
 import android.app.ListFragment;
+import android.app.LoaderManager;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
 
-import java.util.List;
-
-import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
-import fi.iki.aeirola.teddyclientlib.TeddyClient;
-import fi.iki.aeirola.teddyclientlib.models.Window;
+import fi.iki.aeirola.teddyclient.provider.TeddyContract;
+import fi.iki.aeirola.teddyclient.views.adapters.WindowListLineAdapter;
 
 /**
  * A list fragment representing a list of Windows. This fragment
  * also supports tablet devices by allowing list items to be given an
  * 'activated' state upon selection. This helps indicate which item is
- * currently being viewed in a {@link WindowDetailFragment}.
+ * currently being viewed in a {@link fi.iki.aeirola.teddyclient.fragments.WindowDetailFragment}.
  * <p/>
  * Activities containing this fragment MUST implement the {@link Callbacks}
  * interface.
  */
-public class WindowListFragment extends ListFragment {
+public class WindowListFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private static final String TAG = WindowListFragment.class.getName();
 
     /**
@@ -36,7 +36,7 @@ public class WindowListFragment extends ListFragment {
      */
     private static final Callbacks sDummyCallbacks = new Callbacks() {
         @Override
-        public void onItemSelected(Window window) {
+        public void onItemSelected(long window_id) {
         }
     };
     /**
@@ -48,7 +48,7 @@ public class WindowListFragment extends ListFragment {
      * The current activated item position. Only used on tablets.
      */
     private int mActivatedPosition = ListView.INVALID_POSITION;
-    private TeddyClient mTeddyClient;
+    private WindowListLineAdapter dataAdapter;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -58,25 +58,23 @@ public class WindowListFragment extends ListFragment {
     }
 
     @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // Activities containing this fragment must implement its callbacks.
+        if (!(activity instanceof Callbacks)) {
+            throw new IllegalStateException("Activity must implement fragment's callbacks.");
+        }
+
+        mCallbacks = (Callbacks) activity;
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mTeddyClient = TeddyClient.getInstance(getActivity());
-        mTeddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
-            @Override
-            public void onWindowList(final List<Window> windowList) {
-                Log.v(TAG, "windows received!");
-
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        setListAdapter(new WindowListLineAdapter(
-                                getActivity(),
-                                windowList));
-                    }
-                });
-            }
-        }, TAG);
+        dataAdapter = new WindowListLineAdapter(getActivity(), null);
+        setListAdapter(dataAdapter);
     }
 
     @Override
@@ -94,19 +92,7 @@ public class WindowListFragment extends ListFragment {
     public void onStart() {
         super.onStart();
 
-        mTeddyClient.requestWindowList();
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-        // Activities containing this fragment must implement its callbacks.
-        if (!(activity instanceof Callbacks)) {
-            throw new IllegalStateException("Activity must implement fragment's callbacks.");
-        }
-
-        mCallbacks = (Callbacks) activity;
+        getLoaderManager().initLoader(0, null, this);
     }
 
     @Override
@@ -121,11 +107,9 @@ public class WindowListFragment extends ListFragment {
     public void onListItemClick(ListView listView, View view, int position, long id) {
         super.onListItemClick(listView, view, position, id);
 
-        Window window = (Window) listView.getAdapter().getItem(position);
-
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(window);
+        mCallbacks.onItemSelected(id);
     }
 
     @Override
@@ -159,6 +143,32 @@ public class WindowListFragment extends ListFragment {
         mActivatedPosition = position;
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        // This is called when a new Loader needs to be created.
+        String[] mProjection = {
+                TeddyContract.Windows._ID,
+                TeddyContract.Windows.NAME,
+                TeddyContract.Windows.ACTIVITY
+        };
+        return new CursorLoader(getActivity(), TeddyContract.Windows.CONTENT_URI, mProjection, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> objectLoader, Cursor data) {
+        // Swap the new cursor in.  (The framework will take care of closing the
+        // old cursor once we return.)
+        dataAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> objectLoader) {
+        // This is called when the last Cursor provided to onLoadFinished()
+        // above is about to be closed.  We need to make sure we are no
+        // longer using it.
+        dataAdapter.swapCursor(null);
+    }
+
     /**
      * A callback interface that all activities containing this fragment must
      * implement. This mechanism allows activities to be notified of item
@@ -168,8 +178,8 @@ public class WindowListFragment extends ListFragment {
         /**
          * Callback for when an item has been selected.
          *
-         * @param window
+         * @param window_id
          */
-        public void onItemSelected(Window window);
+        public void onItemSelected(long window_id);
     }
 }

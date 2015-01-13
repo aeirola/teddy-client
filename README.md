@@ -36,3 +36,24 @@ TODO
 - Redesign the WebSocket protocol
  - Limit to `bind` and `eval` operations?
  - Completely own fork? (JSON-RPC, WAMP?)
+
+
+
+Component architecture
+----------------------
+
+
+ - UI Layer
+  - Shows data in lists and such
+ - CursorLoader
+  - For fetchign data from the content provider
+ - ContentProvider
+  - Fetches data from rest client, and caches it in data store
+ - Data Store
+  - SQL lite
+  - Serves as cache
+ - REST client
+  - Maintains connection to server and fetches/listens for data
+
+Duplicated for windows and lines
+

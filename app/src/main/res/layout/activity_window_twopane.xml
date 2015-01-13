@@ -23,7 +23,7 @@
 
     <fragment
         android:id="@+id/window_list"
-        android:name="fi.iki.aeirola.teddyclient.WindowListFragment"
+        android:name="fi.iki.aeirola.teddyclient.fragments.WindowListFragment"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"

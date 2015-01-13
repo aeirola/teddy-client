@@ -35,6 +35,12 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="fi.iki.aeirola.teddyclient.WindowListActivity" />
         </activity>
+
+        <provider
+            android:name="fi.iki.aeirola.teddyclient.provider.TeddyContentProvider"
+            android:authorities="fi.iki.aeirola.teddyclient.provider"
+            android:enabled="true"
+            android:exported="false"></provider>
     </application>
 
 </manifest>
