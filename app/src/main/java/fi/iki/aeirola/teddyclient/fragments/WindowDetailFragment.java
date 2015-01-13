@@ -3,6 +3,7 @@ package fi.iki.aeirola.teddyclient.fragments;
 import android.app.ListFragment;
 import android.app.LoaderManager;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
@@ -29,6 +30,7 @@ import fi.iki.aeirola.teddyclient.views.adapters.IrssiLineAdapter;
 import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Line;
+import fi.iki.aeirola.teddyclientlib.models.Window;
 import fi.iki.aeirola.teddyclientlib.models.request.LineRequest;
 
 /**
@@ -89,7 +91,7 @@ public class WindowDetailFragment extends ListFragment implements LoaderManager.
                     }
                 });
 
-                mTeddyClient.resetWindowActivity(windowId);
+                resetWindowActivity(windowId);
             }
 
             @Override
@@ -114,7 +116,7 @@ public class WindowDetailFragment extends ListFragment implements LoaderManager.
                 });
 
                 // Reset activity for window
-                mTeddyClient.resetWindowActivity(windowId);
+                resetWindowActivity(windowId);
             }
 
             private void filterLines(List<Line> lineList) {
@@ -141,6 +143,13 @@ public class WindowDetailFragment extends ListFragment implements LoaderManager.
                 mTeddyClient.requestLineList(viewId, lineRequest);
             }
         }, TAG);
+    }
+
+    private void resetWindowActivity(long windowId) {
+        ContentValues newValues = new ContentValues();
+        newValues.put(TeddyContract.Windows.ACTIVITY, Window.Activity.INACTIVE.toString());
+        Uri uri = ContentUris.withAppendedId(TeddyContract.Windows.CONTENT_URI, windowId);
+        getActivity().getContentResolver().update(uri, newValues, null, null);
     }
 
     @Override

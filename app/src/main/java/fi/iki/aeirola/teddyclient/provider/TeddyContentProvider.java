@@ -81,7 +81,7 @@ public class TeddyContentProvider extends ContentProvider {
             case LINE_URI_ID:
                 return db.query("lines", projection, selections, selectionArgs, null, null, sortOrder);
             default:
-                break;
+                throw new UnsupportedOperationException("Query " + uri);
         }
         return cursor;
     }
@@ -96,23 +96,37 @@ public class TeddyContentProvider extends ContentProvider {
             case LINE_URI_ID:
                 return TeddyContract.Lines.CONTENT_TYPE;
             default:
-                return null;
+                throw new UnsupportedOperationException("Get type " + uri);
         }
     }
 
     @Override
     public Uri insert(Uri uri, ContentValues contentValues) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Insert " + uri);
     }
 
     @Override
     public int delete(Uri uri, String s, String[] strings) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Delete " + uri);
     }
 
     @Override
-    public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
-        throw new UnsupportedOperationException();
+    public int update(Uri uri, ContentValues contentValues, String selections, String[] selectionArgs) {
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        switch (sUriMatcher.match(uri)) {
+            case WINDOW_URI_ID:
+                long windowId = ContentUris.parseId(uri);
+                selections = TeddyContract.Windows._ID + " = ?";
+                selectionArgs = new String[]{String.valueOf(windowId)};
+                int retval = db.update("windows", contentValues, selections, selectionArgs);
+
+                if (Window.Activity.INACTIVE.name().equals(contentValues.getAsString(TeddyContract.Windows.ACTIVITY))) {
+                    mTeddyClient.resetWindowActivity(windowId);
+                }
+                return retval;
+            default:
+                throw new UnsupportedOperationException("Update " + uri);
+        }
     }
 
     /**
