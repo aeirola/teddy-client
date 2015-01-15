@@ -7,6 +7,8 @@ import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -17,6 +19,7 @@ import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
 import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Window;
+import fi.iki.aeirola.teddyclientlib.models.request.LineRequest;
 
 /**
  * Created by Axel on 10.1.2015.
@@ -38,9 +41,11 @@ public class TeddyContentProvider extends ContentProvider {
 
     private static final DateFormat SQL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
+    private static final int LINES_FETCH_SIZE = 100;
+
     // For throttling window sync interval
     private static final long WINDOW_UPDATE_INTERVAL = 15000L;
-    private final HashSet<Long> syncs = new HashSet<>();
+    private final HashSet<Long> syncedViews = new HashSet<>();
     private long previousWindowSyncMs = 0;
     /*
      * Defines a handle to the database helper object. The MainDatabaseHelper class is defined
@@ -118,15 +123,11 @@ public class TeddyContentProvider extends ContentProvider {
             sortOrder = "timestamp ASC";
         }
 
-        String limit = "100";
-
-        if (!syncs.contains(viewId)) {
-            mTeddyClient.subscribeLines(viewId);
-            mTeddyClient.requestLineList(viewId, Integer.valueOf(limit));
-            syncs.add(viewId);
+        if (!syncedViews.contains(viewId)) {
+            syncView(viewId);
         }
 
-        Cursor cursor = db.query("lines", projection, selections, selectionArgs, null, null, sortOrder, limit);
+        Cursor cursor = db.query("lines", projection, selections, selectionArgs, null, null, sortOrder, String.valueOf(LINES_FETCH_SIZE));
         cursor.setNotificationUri(getContext().getContentResolver(), TeddyContract.Lines.CONTENT_URI);
         return cursor;
     }
@@ -182,11 +183,64 @@ public class TeddyContentProvider extends ContentProvider {
         }
     }
 
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        switch (method) {
+            case TeddyContract.Lines.UNSYNC:
+                long viewId = Long.valueOf(arg);
+                unsyncView(viewId);
+                return null;
+            default:
+                throw new UnsupportedOperationException("Call " + method);
+        }
+    }
+
+    private void syncView(long viewId) {
+        if (syncedViews.contains(viewId)) {
+            Log.i(TAG, "View already in sync " + viewId);
+            return;
+        }
+
+        mTeddyClient.subscribeLines(viewId);
+
+        // Get last seen ID
+        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+        String[] columns = {TeddyContract.Lines._ID};
+        String selection = TeddyContract.Lines.VIEW_ID + " = ?";
+        String[] selectionArgs = {String.valueOf(viewId)};
+        String order = "timestamp DESC";
+        Cursor cursor = db.query("lines", columns, selection, selectionArgs, null, null, order, "1");
+
+        LineRequest.Get request = new LineRequest.Get();
+        request.count = LINES_FETCH_SIZE;
+        if (cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            long lastId = cursor.getLong(cursor.getColumnIndex(TeddyContract.Lines._ID));
+            request.afterLine = lastId;
+        }
+
+        mTeddyClient.requestLineList(viewId, request);
+        syncedViews.add(viewId);
+    }
+
+    private void unsyncView(long viewId) {
+        mTeddyClient.unsubscribeLines(viewId);
+        syncedViews.remove(viewId);
+
+        // TODO: Remove long scrollbacks for unsynced view
+    }
+
+    @Override
+    public void shutdown() {
+        // TODO: Clean up old lines from cache
+    }
+
     private void updateWindows(List<Window> windowList) {
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         db.beginTransaction();
         try {
-            // TODO: Forget old windows
+            // TODO: Better handling of updates
+            db.delete("windows", null, null);
             for (Window window : windowList) {
                 ContentValues values = new ContentValues();
                 values.put(TeddyContract.Windows._ID, window.id);
@@ -208,8 +262,11 @@ public class TeddyContentProvider extends ContentProvider {
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         db.beginTransaction();
         try {
-            // TODO: Remove old lines and long scrollbacks
-            // TODO: Add more robust subsecond ordering
+            // Invalidate view cache if there are missing lines
+            if (!isNewLinesInSync(lineList, db)) {
+                removeViewLines(lineList.get(0).viewId, db);
+            }
+
             for (Line line : lineList) {
                 ContentValues values = new ContentValues();
                 values.put(TeddyContract.Lines._ID, line.id);
@@ -224,6 +281,34 @@ public class TeddyContentProvider extends ContentProvider {
         }
 
         getContext().getContentResolver().notifyChange(TeddyContract.Lines.CONTENT_URI, null, false);
+    }
+
+    private boolean isNewLinesInSync(List<Line> lineList, SQLiteDatabase db) {
+        /**
+         * Check if adding a list of lines to the database would cause any potential gaps in the
+         * cache.
+         */
+        if (lineList.size() <= 0) {
+            return true;
+        }
+
+        Line firstLine = lineList.get(0);
+        if (firstLine.prevId == null) {
+            return true;
+        }
+
+        String[] columns = {TeddyContract.Lines._ID};
+        String selection = TeddyContract.Lines._ID + " = ? AND " + TeddyContract.Lines.VIEW_ID + " = ?";
+        String[] selectionArgs = {String.valueOf(firstLine.prevId), String.valueOf(firstLine.viewId)};
+
+        Cursor cursor = db.query("lines", columns, selection, selectionArgs, null, null, null, null);
+        return cursor.getCount() > 0;
+    }
+
+    private void removeViewLines(long viewId, SQLiteDatabase db) {
+        String selection = TeddyContract.Lines._ID + " = ?";
+        String[] selectionArgs = {String.valueOf(viewId)};
+        db.delete("lines", selection, selectionArgs);
     }
 
     protected final class TeddyCallbackHelper extends TeddyCallbackHandler {
@@ -244,7 +329,10 @@ public class TeddyContentProvider extends ContentProvider {
 
         @Override
         public void onReconnect() {
-            // TODO: Re-sync on reconnects
+            // Resync any active syncs
+            for (Long viewId : syncedViews) {
+                syncView(viewId);
+            }
         }
     }
 }

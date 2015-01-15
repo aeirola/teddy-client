@@ -7,6 +7,7 @@ import java.util.Date;
  */
 public class Line {
     public long id;
+    public Long prevId;
     public long viewId;
     public String message;
     public Date timestamp;

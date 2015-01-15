@@ -14,12 +14,11 @@ public class TeddyContract {
         // MIME types
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.fi.iki.aeirola.teddyclient.provider.windows";        // Uris
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.fi.iki.aeirola.teddyclient.provider.windows";
-        public static final Uri CONTENT_URI = Uri.withAppendedPath(TeddyContract.CONTENT_URI, "windows");
         // Column names
         public static final String VIEW_ID = "view_id";
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(TeddyContract.CONTENT_URI, "windows");
         public static final String NAME = "name";
         public static final String ACTIVITY = "activity";
-
 
     }
 
@@ -28,11 +27,12 @@ public class TeddyContract {
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.fi.iki.aeirola.teddyclient.provider.lines";        // Uris
         // Column names
         public static final String VIEW_ID = "view_id";
-        public static final Uri CONTENT_URI = Uri.withAppendedPath(TeddyContract.CONTENT_URI, "lines");
         public static final String WINDOW_ID = "window_id";
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(TeddyContract.CONTENT_URI, "lines");
         public static final String MESSAGE = "message";
         public static final String TIMESTAMP = "timestamp";
-
+        // Method names
+        public static final String UNSYNC = "unsync";
 
     }
 }

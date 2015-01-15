@@ -107,7 +107,8 @@ public class WindowDetailFragment extends ListFragment {
     @Override
     public void onStop() {
         super.onStop();
-        // TODO: Unsubscribe from window lines
+
+        getActivity().getContentResolver().call(TeddyContract.Lines.CONTENT_URI, TeddyContract.Lines.UNSYNC, String.valueOf(viewId), null);
     }
 
     private void sendMessage() {
