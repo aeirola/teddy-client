@@ -1,6 +1,7 @@
 package fi.iki.aeirola.teddyclient.views.adapters;
 
-import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
@@ -9,34 +10,24 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.ResourceCursorAdapter;
 import android.widget.TextView;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import fi.iki.aeirola.teddyclient.R;
 import fi.iki.aeirola.teddyclient.utils.ColorMaps;
-import fi.iki.aeirola.teddyclientlib.models.Line;
 
 /**
  * Created by Axel on 6.12.2014.
  * <p/>
  * Special thanks to ailin-nemui (https://github.com/ailin-nemui) for providing irssi color handling code!
  */
-public class IrssiLineAdapter extends ArrayAdapter<Line> {
+public class IrssiLineAdapter extends ResourceCursorAdapter {
     private static final String TAG = IrssiLineAdapter.class.getName();
-    private final LayoutInflater mInflater;
-    private final Map<Long, SpannableStringBuilder> spanCache = new HashMap<>();
 
-    public IrssiLineAdapter(Activity activity) {
-        super(activity, R.layout.window_detail_line, new ArrayList<Line>());
-        mInflater = LayoutInflater.from(activity);
+    public IrssiLineAdapter(Context context, Cursor cursor) {
+        super(context, R.layout.window_detail_line, cursor, 0);
     }
 
     private static int ansiBitFlip(int x) {
@@ -44,39 +35,28 @@ public class IrssiLineAdapter extends ArrayAdapter<Line> {
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder viewHolder;
+    public void bindView(View view, Context context, Cursor cursor) {
+        ViewHolder viewHolder = (ViewHolder) view.getTag();
 
-        if (convertView == null) {
-            convertView = mInflater.inflate(R.layout.window_detail_line, parent, false);
+        swapCursor(cursor);
 
-            viewHolder = new ViewHolder();
-            viewHolder.textView = (TextView) convertView;
-
-            convertView.setTag(viewHolder);
-        } else {
-            viewHolder = (ViewHolder) convertView.getTag();
-        }
-
-        Line line = this.getItem(position);
-        viewHolder.textView.setText(this.getSpannable(line, ColorMaps.ANSI_FG_COLOR_MAP), TextView.BufferType.EDITABLE);
-        return convertView;
+        String message = cursor.getString(cursor.getColumnIndex("message"));
+        viewHolder.textView.setText(this.buildSpannable(message, ColorMaps.ANSI_FG_COLOR_MAP), TextView.BufferType.EDITABLE);
     }
 
-    private SpannableStringBuilder getSpannable(Line line, int[] colorMap) {
-        SpannableStringBuilder mSpanned = spanCache.get(line.id);
-        if (mSpanned == null) {
-            mSpanned = buildSpannable(line, colorMap);
-            spanCache.put(line.id, mSpanned);
-        }
+    @Override
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = super.newView(context, cursor, parent);
 
-        return mSpanned;
+        ViewHolder viewHolder = new ViewHolder();
+        viewHolder.textView = (TextView) view.findViewById(R.id.window_detail_line);
+        view.setTag(viewHolder);
+
+        return view;
     }
 
-    private SpannableStringBuilder buildSpannable(Line line, int[] colorMap) {
-        Log.v(TAG, "Building span for " + line.id);
+    private SpannableStringBuilder buildSpannable(String message, int[] colorMap) {
         SpannableStringBuilder mSpanned = new SpannableStringBuilder();
-        String message = line.message;
 
         boolean u = false, r = false, b = false, bl = false, f = false, i = false;
         int curFgColor = -1, curBgColor = -1;

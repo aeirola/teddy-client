@@ -288,17 +288,17 @@ public class TeddyClient {
         this.send(request);
     }
 
-    public void requestLineList(long windowId, int count) {
+    public void requestLineList(long viewId, int count) {
         LineRequest.Get lineRequest = new LineRequest.Get();
         lineRequest.count = count;
-        this.requestLineList(windowId, lineRequest);
+        this.requestLineList(viewId, lineRequest);
     }
 
-    public void requestLineList(long windowId, LineRequest.Get lineRequest) {
+    public void requestLineList(long viewId, LineRequest.Get lineRequest) {
         Request request = new Request();
         request.line = new LineRequest();
         request.line.get = new HashMap<>();
-        request.line.get.put(windowId, lineRequest);
+        request.line.get.put(viewId, lineRequest);
         this.send(request);
     }
 

@@ -12,15 +12,10 @@ TODO
 
 - Hide input field when reading scrollback
 - Improved server event handling
- - Use of Loaders and Cursors for data updates?
 - Visual tweaking
  - Material design
  - Transitions
  - Fonts
-- Move all protocol handling to separate worker thread
- - Loaders would do this
- - Do network requests and JSON (de)serialization there
- - Communication using Handlers?
 - Improve connection handling
  - Disconnection
   - On inactivity (~5min)

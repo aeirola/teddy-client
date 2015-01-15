@@ -2,6 +2,7 @@ package fi.iki.aeirola.teddyclientlib.models.response;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ public class LineResponse implements Serializable {
                 Line line = new Line();
                 line.id = lineData.id;
                 line.viewId = entry.getKey();
+                line.timestamp = new Date(lineData.time);
                 line.message = lineData.text;
                 lineList.add(line);
             }
@@ -37,5 +39,6 @@ public class LineResponse implements Serializable {
     public static class LineData {
         public long id;
         public String text;
+        public long time;
     }
 }
