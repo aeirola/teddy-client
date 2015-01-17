@@ -8,6 +8,5 @@ public enum State {
     CONNECTING,
     RECONNECTING,
     CONNECTED,
-    RECONNECTED,
     DISCONNECTING,
 }

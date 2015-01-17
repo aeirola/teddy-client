@@ -18,4 +18,8 @@ public class InputRequest implements Serializable {
         this.window = windowId;
         this.data = data;
     }
+
+    public boolean expectResponse() {
+        return false;
+    }
 }

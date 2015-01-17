@@ -10,7 +10,7 @@ import java.util.Map;
  * Created by aeirola on 15.10.2014.
  */
 public class Response implements Serializable {
-    public String id;
+    public Long id;
     public String challenge;
     public Boolean login;
 

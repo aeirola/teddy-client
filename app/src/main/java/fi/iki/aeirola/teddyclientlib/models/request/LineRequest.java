@@ -13,6 +13,10 @@ public class LineRequest implements Serializable {
     public Sub sub_add;
     public Sub sub_rm;
 
+    public boolean expectResponse() {
+        return get != null;
+    }
+
     public static class Get {
         public int lv = 1;
         public int count = 10;

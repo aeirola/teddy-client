@@ -9,6 +9,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -105,6 +106,15 @@ public class WindowDetailFragment extends ListFragment {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+
+        if (viewId != 0) {
+            getLoaderManager().restartLoader(LinesLoaderCallback.LOADER_ID, null, new LinesLoaderCallback());
+        }
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
 
@@ -115,13 +125,17 @@ public class WindowDetailFragment extends ListFragment {
         if (windowId == 0) {
             return;
         }
-        String message = mEditText.getText().toString();
+        Editable text = mEditText.getText();
+        if (text.length() == 0) {
+            return;
+        }
 
         ContentValues newValues = new ContentValues();
-        newValues.put(TeddyContract.Lines.MESSAGE, message);
+        newValues.put(TeddyContract.Lines.MESSAGE, text.toString());
         newValues.put(TeddyContract.Lines.WINDOW_ID, windowId);
         getActivity().getContentResolver().insert(TeddyContract.Lines.CONTENT_URI, newValues);
-        mEditText.setText("");
+
+        text.clear();
     }
 
     private class WindowLoaderCallback implements LoaderManager.LoaderCallbacks<Cursor> {

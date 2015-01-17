@@ -92,7 +92,7 @@ public class WindowListFragment extends ListFragment implements LoaderManager.Lo
     public void onStart() {
         super.onStart();
 
-        getLoaderManager().initLoader(0, null, this);
+        getLoaderManager().restartLoader(0, null, this);
     }
 
     @Override

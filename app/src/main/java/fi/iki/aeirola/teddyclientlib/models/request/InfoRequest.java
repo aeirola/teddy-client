@@ -15,4 +15,8 @@ public class InfoRequest implements Serializable {
     public InfoRequest(String name) {
         this.name = name;
     }
+
+    public boolean expectResponse() {
+        return name != null;
+    }
 }

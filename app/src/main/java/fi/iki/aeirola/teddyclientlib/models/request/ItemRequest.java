@@ -8,6 +8,10 @@ import java.io.Serializable;
 public class ItemRequest implements Serializable {
     public Get get = new Get();
 
+    public boolean expectResponse() {
+        return get != null;
+    }
+
     public static class Get {
         public int lv = 1;
     }

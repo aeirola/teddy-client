@@ -34,20 +34,27 @@ import fi.iki.aeirola.teddyclientlib.models.request.ItemRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.LineRequest;
 import fi.iki.aeirola.teddyclientlib.models.request.Request;
 import fi.iki.aeirola.teddyclientlib.models.request.WindowRequest;
+import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
+import fi.iki.aeirola.teddyclientlib.models.response.Response;
+import fi.iki.aeirola.teddyclientlib.utils.TimeoutHandler;
 
 /**
  * Created by aeirola on 14.10.2014.
  */
-public class TeddyClient {
+public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
 
     private static final String TAG = TeddyClient.class.getName();
-    private static final int TIMEOUT = 15000;
+    private static final int PING_TIMEOUT = 15000;
+    private static final int REQUEST_TIMEOUT = 5000;
+    private static final int RECONNECT_INTERVAL = 5000;
 
     private static TeddyClient instance;
-    private final Queue<Object> messageQueue = new ArrayDeque<>();
+    private final Queue<Request> messageQueue = new ArrayDeque<>();
     private final Map<String, TeddyCallbackHandler> callbackHandlers = new HashMap<>();
     private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
     private final Set<Long> lineSyncs = new HashSet<>();
+    private final TimeoutHandler pingTimeoutHandler;
+    private final TimeoutHandler requestTimeoutHandler;
     private TeddyConnectionHandler mConnectionHandler;
     private String uri;
     private String password;
@@ -55,12 +62,14 @@ public class TeddyClient {
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
-    private long lastPingReceived;
 
     protected TeddyClient(String uri, String password, String certFingerprint) {
         this.uri = uri;
         this.password = password;
         this.certFingerprint = certFingerprint;
+
+        this.pingTimeoutHandler = new TimeoutHandler(PING_TIMEOUT, this);
+        this.requestTimeoutHandler = new TimeoutHandler(REQUEST_TIMEOUT, this);
     }
 
     protected TeddyClient(SharedPreferences sharedPref) {
@@ -129,21 +138,12 @@ public class TeddyClient {
                 Log.w(TAG, "Invalid state on connect " + connectionState);
         }
 
-        lastPingReceived = System.currentTimeMillis();
-        worker.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (connectionState != State.DISCONNECTED && System.currentTimeMillis() - lastPingReceived > TIMEOUT) {
-                    // Timed out
-                    timeout();
-                }
-            }
-        }, TIMEOUT, TIMEOUT, TimeUnit.MILLISECONDS);
-
+        pingTimeoutHandler.set();
         sendChallenge();
     }
 
-    private void timeout() {
+    @Override
+    public void onTimeout() {
         Log.d(TAG, "Connection ping timeout");
         this.connectionState = State.DISCONNECTING;
         this.mConnectionHandler.close();
@@ -167,7 +167,7 @@ public class TeddyClient {
                 public void run() {
                     reconnect();
                 }
-            }, 500, TimeUnit.MILLISECONDS);
+            }, RECONNECT_INTERVAL, TimeUnit.MILLISECONDS);
             return;
         }
 
@@ -181,6 +181,40 @@ public class TeddyClient {
         this.connectionState = State.DISCONNECTED;
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
             callbackHandler.onDisconnect();
+        }
+    }
+
+    public void onMessage(Response response) {
+        requestTimeoutHandler.cancel();
+
+        if (response.challenge != null) {
+            this.onChallenge((response.challenge));
+        }
+
+        if (response.login != null) {
+            if (response.login) {
+                this.onLogin();
+            } else {
+                Log.i(TAG, "Login failed");
+            }
+        }
+
+        if (response.info != null) {
+            if (response.info.version != null) {
+                this.onVersion((response.info.version));
+            }
+        }
+
+        if (response.window != null) {
+            this.onWindowList(response.window.toList(response.item));
+        }
+
+        if (response.line != null) {
+            this.onLineList(response.line.toList());
+        }
+
+        if (response.lineAdded != null) {
+            this.onNewLines(LineResponse.toList(response.lineAdded));
         }
     }
 
@@ -221,7 +255,7 @@ public class TeddyClient {
                 }
                 break;
             case RECONNECTING:
-                connectionState = State.RECONNECTED;
+                connectionState = State.CONNECTED;
                 sendQueuedMessages();
 
                 for (long viewId : lineSyncs) {
@@ -238,7 +272,7 @@ public class TeddyClient {
     }
 
     private void sendQueuedMessages() {
-        Object message;
+        Request message;
         while ((message = this.messageQueue.poll()) != null) {
             this.send(message);
         }
@@ -260,7 +294,7 @@ public class TeddyClient {
 
     protected void onPing() {
         Log.d(TAG, "Ping");
-        lastPingReceived = System.currentTimeMillis();
+        pingTimeoutHandler.reset();
     }
 
     public void requestWindowList() {
@@ -348,34 +382,40 @@ public class TeddyClient {
         this.callbackHandlers.remove(handlerKey);
     }
 
-    protected void send(Object jsonObject) {
-        this.send(jsonObject, true);
+    protected void send(Request request) {
+        this.send(request, true);
     }
 
-    protected void send(Object jsonObject, boolean waitForLogin) {
+    protected void send(Request request, boolean waitForLogin) {
         switch (this.connectionState) {
             case DISCONNECTED:
                 this.connect();
-                this.messageQueue.add(jsonObject);
+                this.messageQueue.add(request);
                 break;
             case CONNECTING:
             case RECONNECTING:
                 if (waitForLogin) {
                     // Queue messages to be sent when logged in
-                    this.messageQueue.add(jsonObject);
+                    this.messageQueue.add(request);
                 } else {
-                    this.mConnectionHandler.send(jsonObject);
+                    sendWithoutQueue(request);
                 }
                 break;
             case CONNECTED:
-            case RECONNECTED:
-                this.mConnectionHandler.send(jsonObject);
+                sendWithoutQueue(request);
                 break;
             case DISCONNECTING:
                 break;
             default:
                 Log.w(TAG, "Unknown state while sending: " + this.connectionState);
         }
+    }
+
+    private void sendWithoutQueue(Request request) {
+        if (request.expectResponse()) {
+            requestTimeoutHandler.set();
+        }
+        this.mConnectionHandler.send(request);
     }
 
     private String generateClientChallenge() {

@@ -76,6 +76,7 @@ public class TeddyContentProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selections, String[] selectionArgs, String sortOrder) {
+        Log.v(TAG, "query " + uri);
         switch (sUriMatcher.match(uri)) {
             case WINDOWS_URI_ID:
                 return queryWindows(uri, projection, selections, selectionArgs, sortOrder);
@@ -127,7 +128,7 @@ public class TeddyContentProvider extends ContentProvider {
             syncView(viewId);
         }
 
-        Cursor cursor = db.query("lines", projection, selections, selectionArgs, null, null, sortOrder, String.valueOf(LINES_FETCH_SIZE));
+        Cursor cursor = db.query("lines", projection, selections, selectionArgs, null, null, sortOrder);
         cursor.setNotificationUri(getContext().getContentResolver(), TeddyContract.Lines.CONTENT_URI);
         return cursor;
     }
@@ -148,6 +149,7 @@ public class TeddyContentProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues contentValues) {
+        Log.v(TAG, "insert " + uri);
         switch (sUriMatcher.match(uri)) {
             case LINE_URI_ID:
                 long windowId = contentValues.getAsLong(TeddyContract.Lines.WINDOW_ID);
@@ -161,11 +163,13 @@ public class TeddyContentProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String s, String[] strings) {
+        Log.v(TAG, "delete " + uri);
         throw new UnsupportedOperationException("Delete " + uri);
     }
 
     @Override
     public int update(Uri uri, ContentValues contentValues, String selections, String[] selectionArgs) {
+        Log.v(TAG, "update " + uri);
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         switch (sUriMatcher.match(uri)) {
             case WINDOW_URI_ID:
@@ -185,6 +189,7 @@ public class TeddyContentProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
+        Log.v(TAG, "call " + method);
         switch (method) {
             case TeddyContract.Lines.UNSYNC:
                 long viewId = Long.valueOf(arg);
@@ -196,11 +201,6 @@ public class TeddyContentProvider extends ContentProvider {
     }
 
     private void syncView(long viewId) {
-        if (syncedViews.contains(viewId)) {
-            Log.i(TAG, "View already in sync " + viewId);
-            return;
-        }
-
         mTeddyClient.subscribeLines(viewId);
 
         // Get last seen ID

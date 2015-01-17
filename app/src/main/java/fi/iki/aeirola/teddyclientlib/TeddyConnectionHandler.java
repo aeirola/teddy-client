@@ -23,7 +23,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.Response;
 
 
@@ -131,7 +130,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             return;
         }
 
-        this.onMessage(response);
+        this.teddyClient.onMessage(response);
     }
 
     @Override
@@ -147,49 +146,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             byteBufferList.recycle();
         }
 
-        this.onMessage(response);
-    }
-
-    public void onMessage(Response response) {
-
-        if (response.id != null) {
-            switch (response.id) {
-                case "_buffer_line_added":
-                    //teddyClient.onLineList(response);
-                    return;
-            }
-        }
-
-        if (response.challenge != null) {
-            teddyClient.onChallenge((response.challenge));
-        }
-
-        if (response.login != null) {
-            if (response.login) {
-                teddyClient.onLogin();
-            } else {
-                Log.i(TAG, "Login failed");
-            }
-        }
-
-        if (response.info != null) {
-            if (response.info.version != null) {
-                teddyClient.onVersion((response.info.version));
-            }
-        }
-
-        if (response.window != null) {
-            teddyClient.onWindowList(response.window.toList(response.item));
-        }
-
-        if (response.line != null) {
-            teddyClient.onLineList(response.line.toList());
-        }
-
-        if (response.lineAdded != null) {
-            teddyClient.onNewLines(LineResponse.toList(response.lineAdded));
-        }
-
+        this.teddyClient.onMessage(response);
     }
 
     @Override

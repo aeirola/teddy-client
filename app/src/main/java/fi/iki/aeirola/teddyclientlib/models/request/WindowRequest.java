@@ -10,6 +10,10 @@ public class WindowRequest implements Serializable {
     public Get get;
     public List<Long> dehilight;
 
+    public boolean expectResponse() {
+        return get != null;
+    }
+
     public static class Get {
         public int lv = 1;
         public String renumf = null;
