@@ -1,6 +1,15 @@
 apply plugin: 'com.android.application'
+apply plugin: 'play'
 
 android {
+    signingConfigs {
+        release {
+            storeFile file("../" + System.getenv("KEYSTORE_FILE"))
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_NAME")
+            keyPassword System.getenv("KEY_PASSWORD")
+        }
+    }
     compileSdkVersion 21
     buildToolsVersion '21.1.2'
     defaultConfig {
@@ -12,8 +21,12 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
         }
     }
     compileOptions {
@@ -24,8 +37,12 @@ android {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
     }
-    productFlavors {
-    }
+}
+
+play {
+    serviceAccountEmail = System.getenv("ACCOUNT_NAME")
+    pk12File = file("../" + System.getenv("ACCOUNT_KEY_FILE"))
+    track = 'alpha'
 }
 
 dependencies {

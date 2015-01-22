@@ -147,6 +147,8 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         Log.d(TAG, "Connection ping timeout");
         this.connectionState = State.DISCONNECTING;
         this.mConnectionHandler.close();
+
+        // TODO: Fix getting stuck in disconnecting
     }
 
     public void disconnect() {
@@ -405,6 +407,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
                 sendWithoutQueue(request);
                 break;
             case DISCONNECTING:
+                // TODO: This shouldn't just silently drop the message
                 break;
             default:
                 Log.w(TAG, "Unknown state while sending: " + this.connectionState);

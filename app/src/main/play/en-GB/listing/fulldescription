@@ -1,0 +1,3 @@
+A remote client application for chatting on IRC via a remote irssi IRC client.
+
+Requires that the teddy-nu remote proxy plugin from https://github.com/ailin-nemui/teddy is installed and set up on the irssi instance.

@@ -69,6 +69,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     }
 
     public void close() {
+        // TODO: Add state check, verify that onDisconnect is called, every time
         if (this.webSocket != null && this.webSocket.isOpen())
             this.webSocket.close();
     }

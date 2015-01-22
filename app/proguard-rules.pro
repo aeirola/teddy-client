@@ -15,3 +15,12 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# No need to obfuscate since the source is open
+-dontobfuscate
+
+# Jackson is referencing some unused classes
+-dontwarn com.fasterxml.jackson.databind.**
+
+# Some data model classes rely on reflection, need to explicitly keep them
+-keep public class fi.iki.aeirola.teddyclientlib.models.**
