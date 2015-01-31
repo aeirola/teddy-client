@@ -153,7 +153,9 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         Log.d(TAG, "Disconnecting");
         this.lineSyncs.clear();
         this.messageQueue.clear();
-        this.mConnectionHandler.close();
+        if (mConnectionHandler != null) {
+            this.mConnectionHandler.close();
+        }
         onDisconnect();
     }
 

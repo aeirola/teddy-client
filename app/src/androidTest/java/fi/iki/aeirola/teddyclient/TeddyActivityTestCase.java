@@ -10,6 +10,7 @@ import com.robotium.solo.Solo;
 
 import java.net.InetSocketAddress;
 
+import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.TestServer;
 
 /**
@@ -32,6 +33,7 @@ public abstract class TeddyActivityTestCase<T extends Activity> extends Activity
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this.getInstrumentation().getTargetContext());
         preferences.edit().putString(SettingsActivity.KEY_PREF_URI, "ws://localhost:8080/teddy").apply();
+        TeddyClient.updatePreferences(this.getInstrumentation().getTargetContext());
 
         Solo.Config config = new Solo.Config();
         config.screenshotFileType = Solo.Config.ScreenshotFileType.PNG;
