@@ -59,15 +59,9 @@ final class ContentCacheDatabaseHelper extends SQLiteOpenHelper {
 
     private void migrateToVersion(SQLiteDatabase db, int schemaVersion) {
         Log.v(TAG, "Migrating to version " + schemaVersion);
-        db.beginTransaction();
-        try {
-            // Run statements in first schema version
-            for (String command : SQL_SCHEMA[schemaVersion]) {
-                db.execSQL(command);
-            }
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
+        // Run statements in first schema version
+        for (String command : SQL_SCHEMA[schemaVersion]) {
+            db.execSQL(command);
         }
     }
 }

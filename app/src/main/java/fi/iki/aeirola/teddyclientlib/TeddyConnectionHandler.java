@@ -33,9 +33,9 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     private static final String TAG = TeddyConnectionHandler.class.getName();
 
     private final String uri;
-    private final TeddyClient teddyClient;
     private final ObjectMapper mObjectMapper = new ObjectMapper();
     public WebSocket webSocket;
+    private TeddyClient teddyClient;
 
     public TeddyConnectionHandler(String uri, String certFingerprint, TeddyClient teddyClient) {
         this.teddyClient = teddyClient;
@@ -69,9 +69,11 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     }
 
     public void close() {
-        // TODO: Add state check, verify that onDisconnect is called, every time
-        if (this.webSocket != null && this.webSocket.isOpen())
+        if (this.webSocket != null && this.webSocket.isOpen()) {
             this.webSocket.close();
+        }
+
+        teddyClient = null;
     }
 
     public void send(Object jsonObject) {
@@ -98,7 +100,9 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             }
 
             Log.v(TAG, "Connected!");
-            teddyClient.onConnect();
+            if (teddyClient != null) {
+                teddyClient.onConnect();
+            }
         }
     }
 
@@ -111,7 +115,9 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
         }
 
         this.webSocket = null;
-        teddyClient.onDisconnect();
+        if (teddyClient != null) {
+            teddyClient.onDisconnect();
+        }
     }
 
     @Override

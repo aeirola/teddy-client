@@ -145,18 +145,16 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     @Override
     public void onTimeout() {
         Log.d(TAG, "Connection ping timeout");
-        this.connectionState = State.DISCONNECTING;
         this.mConnectionHandler.close();
-
-        // TODO: Fix getting stuck in disconnecting
+        onDisconnect();
     }
 
     public void disconnect() {
         Log.d(TAG, "Disconnecting");
-        this.connectionState = State.DISCONNECTING;
         this.lineSyncs.clear();
         this.messageQueue.clear();
         this.mConnectionHandler.close();
+        onDisconnect();
     }
 
     protected void onDisconnect() {
@@ -308,6 +306,16 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         this.send(request);
     }
 
+    public void requestWindow(long windowId) {
+        Log.d(TAG, "Requesting window " + windowId);
+        // TODO: Get only single window
+        Request request = new Request();
+        request.window = new WindowRequest();
+        request.window.get = new WindowRequest.Get();
+        request.item = new ItemRequest();
+        this.send(request);
+    }
+
     protected void onWindowList(List<Window> windowList) {
         Log.d(TAG, "Received window list");
         for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
@@ -405,9 +413,6 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
                 break;
             case CONNECTED:
                 sendWithoutQueue(request);
-                break;
-            case DISCONNECTING:
-                // TODO: This shouldn't just silently drop the message
                 break;
             default:
                 Log.w(TAG, "Unknown state while sending: " + this.connectionState);

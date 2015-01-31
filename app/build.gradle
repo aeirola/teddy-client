@@ -47,5 +47,6 @@ play {
 
 dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.4.3'
-    compile 'com.koushikdutta.async:androidasync:2.0.1'
+    compile 'com.koushikdutta.async:androidasync:2.0.5'
+    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
 }

@@ -107,7 +107,14 @@ public class TeddyContentProvider extends ContentProvider {
         long windowId = ContentUris.parseId(uri);
         selections = TeddyContract.Windows._ID + " = ?";
         selectionArgs = new String[]{String.valueOf(windowId)};
-        return db.query("windows", projection, selections, selectionArgs, null, null, null, "1");
+        Cursor cursor = db.query("windows", projection, selections, selectionArgs, null, null, null, "1");
+
+        if (cursor.getCount() < 1) {
+            cursor.setNotificationUri(getContext().getContentResolver(), TeddyContract.Windows.CONTENT_URI);
+            mTeddyClient.requestWindow(windowId);
+        }
+
+        return cursor;
     }
 
     private Cursor queryLines(Uri uri, String[] projection, String selections, String[] selectionArgs, String sortOrder) {
@@ -170,9 +177,9 @@ public class TeddyContentProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues contentValues, String selections, String[] selectionArgs) {
         Log.v(TAG, "update " + uri);
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         switch (sUriMatcher.match(uri)) {
             case WINDOW_URI_ID:
+                SQLiteDatabase db = mOpenHelper.getWritableDatabase();
                 long windowId = ContentUris.parseId(uri);
                 selections = TeddyContract.Windows._ID + " = ?";
                 selectionArgs = new String[]{String.valueOf(windowId)};
@@ -219,6 +226,8 @@ public class TeddyContentProvider extends ContentProvider {
             request.afterLine = lastId;
         }
 
+        cursor.close();
+
         mTeddyClient.requestLineList(viewId, request);
         syncedViews.add(viewId);
     }
@@ -233,9 +242,15 @@ public class TeddyContentProvider extends ContentProvider {
     @Override
     public void shutdown() {
         // TODO: Clean up old lines from cache
+        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+        db.close();
     }
 
     private void updateWindows(List<Window> windowList) {
+        if (windowList == null || windowList.isEmpty()) {
+            return;
+        }
+
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         db.beginTransaction();
         try {
@@ -302,7 +317,9 @@ public class TeddyContentProvider extends ContentProvider {
         String[] selectionArgs = {String.valueOf(firstLine.prevId), String.valueOf(firstLine.viewId)};
 
         Cursor cursor = db.query("lines", columns, selection, selectionArgs, null, null, null, null);
-        return cursor.getCount() > 0;
+        boolean retval = cursor.getCount() > 0;
+        cursor.close();
+        return retval;
     }
 
     private void removeViewLines(long viewId, SQLiteDatabase db) {

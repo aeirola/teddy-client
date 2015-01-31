@@ -109,7 +109,7 @@ public class TeddyProtocolClientTest extends TestCase {
 
             @Override
             public void onWindowList(List<Window> windowList) {
-                teddyProtocol.requestLineList(windowList.get(0).id, 10);
+                teddyProtocol.requestLineList(windowList.get(0).viewId, 10);
             }
 
             @Override
@@ -119,7 +119,8 @@ public class TeddyProtocolClientTest extends TestCase {
             }
         });
 
-        assertTrue("First line item doesn't contain mark", receivedLineList.get(0).message.contains("hello"));
+        String message = receivedLineList.get(0).message;
+        assertTrue("First line item doesn't contain mark, was: " + message, message.contains("Day changed"));
     }
 
     public void testInput() throws URISyntaxException, InterruptedException {
