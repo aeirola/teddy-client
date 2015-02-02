@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'play'
+apply plugin: "androidsvgdrawable"
 
 android {
     signingConfigs {
@@ -49,4 +50,62 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.4.3'
     compile 'com.koushikdutta.async:androidasync:2.0.5'
     androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
+}
+
+task generateResImages(type: fr.avianey.androidsvgdrawable.gradle.SvgDrawableTask) {
+    from = file('src/main/svg/res')
+    to = file('src/main/res')
+    createMissingDirectories = true
+    overrideMode = 'ifModified'
+    fallbackDensity = 'mdpi'
+    targetedDensities = ['ldpi', 'mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']
+    outputFormat = 'PNG'
+    highResIcon = 'ic_launcher_teddy'
+
+    doLast {
+        // Cleanup old
+        file('src/main/play/en-GB/listing/icon').deleteDir()
+
+        // Move play icon to correct place
+        file('src/main/play/en-GB/listing/icon').mkdirs()
+        file('../ic_launcher_teddy.png').renameTo(file('src/main/play/en-GB/listing/icon/ic_launcher_teddy.png'))
+    }
+}
+
+task generatePlayImages(type: fr.avianey.androidsvgdrawable.gradle.SvgDrawableTask) {
+    from = file('src/main/svg/play')
+    to = file('src/main/play/en-GB/listing')
+    createMissingDirectories = true
+    overrideMode = 'ifModified'
+    fallbackDensity = 'mdpi'
+    targetedDensities = ['mdpi']
+    outputFormat = 'PNG'
+
+    doLast {
+        // Cleanup old
+        file('src/main/play/en-GB/listing/featureGraphic').deleteDir()
+
+        // Move images to correct place
+        file('src/main/play/en-GB/listing/featureGraphic').mkdirs()
+        file('src/main/play/en-GB/listing/drawable/feature_graphic.png').renameTo(file('src/main/play/en-GB/listing/featureGraphic/feature_graphic.png'))
+        file('src/main/play/en-GB/listing/drawable').deleteDir()
+    }
+}
+
+task fetchScreenshots(description: 'Fetches test screenshots from emulator') {
+    doLast {
+        exec {
+            commandLine "adb", 'pull', '/sdcard/test_screenshots', 'src/main/play/en-GB/listing/phoneScreenshots'
+        }
+    }
+}
+
+task publish(description: 'Builds, tests and publishes APK')
+publish.dependsOn {
+    [
+            'build',
+            'connectedCheck',
+            'fetchScreenshots',
+            'publishRelease',
+    ]
 }

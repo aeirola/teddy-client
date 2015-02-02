@@ -5,3 +5,5 @@
 .DS_Store
 /build
 /app/build
+# All bitmaps should be generated from some source
+*.png

@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="48"
+   height="48"
+   viewBox="0 0 48 48"
+   preserveAspectRatio="xMidYMid meet"
+   id="svg3336"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="ic_launcher_teddy_3.svg">
+  <title
+     id="title4208">ic_launcher_teddy</title>
+  <defs
+     id="defs3402">
+    <linearGradient
+       inkscape:collect="always"
+       id="hilight-5">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1"
+         offset="0"
+         id="stop4430" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0.10044313"
+         offset="1"
+         id="stop4432" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#hilight-5"
+       id="linearGradient4434"
+       x1="0"
+       y1="0"
+       x2="48"
+       y2="48"
+       gradientUnits="userSpaceOnUse" />
+    <filter
+       height="1"
+       width="1"
+       y="0"
+       x="0"
+       inkscape:label="TintShade"
+       id="filter4233"
+       style="color-interpolation-filters:sRGB">
+      <feOffset
+         result="result3"
+         in="SourceAlpha"
+         id="feOffset4235"
+         dy="1"
+         dx="0" />
+      <feComposite
+         in2="result3"
+         values="0.65000000000000002"
+         result="result4"
+         operator="out"
+         in="SourceAlpha"
+         id="feComposite4237" />
+      <feFlood
+         flood-color="rgb(255,255,255)"
+         flood-opacity="0.20000000000000001"
+         result="result5"
+         in="result4"
+         id="feFlood4239" />
+      <feComposite
+         flood-opacity="0.28999999999999998"
+         in="result5"
+         operator="in"
+         result="result7"
+         in2="result4"
+         id="feComposite4241" />
+      <feOffset
+         dx="0"
+         dy="-1"
+         id="feOffset4245"
+         in="SourceAlpha"
+         result="result8" />
+      <feComposite
+         id="feComposite4247"
+         in2="result8"
+         in="SourceAlpha"
+         operator="out"
+         result="result10" />
+      <feFlood
+         id="feFlood4249"
+         flood-opacity="0.20000000000000001"
+         result="result9"
+         flood-color="rgb(26,35,126)" />
+      <feComposite
+         id="feComposite4251"
+         in2="result10"
+         operator="in"
+         result="result11" />
+      <feMerge
+         id="feMerge4253">
+        <feMergeNode
+           inkscape:collect="always"
+           id="feMergeNode4255"
+           in="SourceGraphic" />
+        <feMergeNode
+           inkscape:collect="always"
+           id="feMergeNode4257"
+           in="result11" />
+        <feMergeNode
+           inkscape:collect="always"
+           id="feMergeNode4259"
+           in="result7" />
+      </feMerge>
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Drop Shadow"
+       id="filter4465"
+       width="1"
+       x="-1.0408340855860843e-017"
+       height="1.3799999999999999"
+       y="-0.18999999999999995">
+      <feFlood
+         flood-opacity="0.2"
+         flood-color="rgb(26,35,126)"
+         result="flood"
+         id="feFlood4467" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite4469" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="1.5"
+         result="blur"
+         id="feGaussianBlur4471" />
+      <feOffset
+         dx="0"
+         dy="-1.5"
+         result="offset"
+         id="feOffset4473" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="composite2"
+         id="feComposite4475" />
+    </filter>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4221">
+      <rect
+         ry="3"
+         rx="3"
+         y="5"
+         x="5"
+         height="38"
+         width="38"
+         id="rect4223"
+         style="display:inline;fill:#2196f3" />
+    </clipPath>
+  </defs>
+  <sodipodi:namedview
+     pagecolor="#000000"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview3400"
+     showgrid="true"
+     inkscape:document-units="px"
+     units="px"
+     inkscape:zoom="11.313708"
+     inkscape:cx="29.278052"
+     inkscape:cy="29.838981"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3336"
+     inkscape:snap-grids="true"
+     showguides="false">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4238"
+       originx="3"
+       originy="3"
+       empspacing="7"
+       dotted="false" />
+    <inkscape:grid
+       type="axonomgrid"
+       id="grid8417"
+       units="px"
+       empspacing="1"
+       gridanglex="45"
+       gridanglez="45"
+       spacingy="48" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata4236">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>ic_launcher_teddy</dc:title>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Axel Eirola</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:language>English</dc:language>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>Teddy</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+        <dc:description>Launcher icon for the teddy client app</dc:description>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:label="Background"
+     style="display:inline">
+    <rect
+       style="fill:#2196f3;filter:url(#filter4233)"
+       id="border"
+       width="38"
+       height="38"
+       x="5"
+       y="5"
+       rx="3"
+       ry="3" />
+    <rect
+       style="fill:#0d47a1;fill-opacity:1;stroke:none;stroke-width:0.417;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4465)"
+       id="center"
+       width="38"
+       height="26"
+       x="5"
+       y="-37"
+       transform="scale(1,-1)" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Content"
+     style="display:inline">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:38.51175308px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="9.3042307"
+       y="26.021912"
+       id="text4184"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4186"
+         x="9.3042307"
+         y="26.021912"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.62793827px;line-height:125%;font-family:monospace;-inkscape-font-specification:'monospace Bold';fill:#ffffff;fill-opacity:1">teddy</tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Finish">
+    <path
+       style="opacity:0.48300003;fill:url(#linearGradient4434);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 0,48 C 48,48 48,0 48,0 L 0,0 Z"
+       id="hilight"
+       inkscape:connector-curvature="0"
+       mask="none"
+       clip-path="url(#clipPath4221)" />
+  </g>
+</svg>
