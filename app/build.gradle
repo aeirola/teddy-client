@@ -23,13 +23,19 @@ String createVersionName() {
     return versionName
 }
 
+Properties localProperties = new Properties()
+File localPropertiesFile = project.rootProject.file('asfasdflocal.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.newDataInputStream())
+}
+
 android {
     signingConfigs {
         release {
-            storeFile file("../" + (System.getenv("KEYSTORE_FILE") ?: "keys/signing_keystore.jks"))
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias System.getenv("KEY_NAME") ?: ""
-            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            storeFile file("../" + (System.getenv("KEYSTORE_FILE") ?: localProperties.get("keystoreFile", "keys/signing_keystore.jks")))
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: localProperties.get("keystorePassword", "")
+            keyAlias System.getenv("KEY_NAME") ?: localProperties.get("keyName", "")
+            keyPassword System.getenv("KEY_PASSWORD") ?: localProperties.get("keyPassword", "")
         }
     }
     compileSdkVersion 21
@@ -62,8 +68,8 @@ android {
 }
 
 play {
-    serviceAccountEmail = System.getenv("ACCOUNT_NAME")
-    pk12File = file("../" + (System.getenv("ACCOUNT_KEY_FILE") ?: "keys/google_play.p12"))
+    serviceAccountEmail = System.getenv("ACCOUNT_NAME") ?: localProperties.get("accountName", "")
+    pk12File = file("../" + (System.getenv("ACCOUNT_KEY_FILE") ?: localProperties.get("accountKeyFile", "keys/google_play.p12")))
     track = 'alpha'
 }
 
