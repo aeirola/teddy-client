@@ -80,7 +80,11 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
         try {
             String message = this.mObjectMapper.writeValueAsString(jsonObject);
             Log.v(TAG, "Sending: " + message);
-            this.webSocket.send(message);
+            if (this.webSocket == null) {
+                Log.w(TAG, "Not connected, could not send message!");
+            } else {
+                this.webSocket.send(message);
+            }
         } catch (IOException e) {
             Log.e(TAG, "Message sending failed", e);
         }
@@ -137,7 +141,10 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             return;
         }
 
-        this.teddyClient.onMessage(response);
+
+        if (teddyClient != null) {
+            teddyClient.onMessage(response);
+        }
     }
 
     @Override
@@ -153,7 +160,10 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             byteBufferList.recycle();
         }
 
-        this.teddyClient.onMessage(response);
+
+        if (teddyClient != null) {
+            teddyClient.onMessage(response);
+        }
     }
 
     @Override

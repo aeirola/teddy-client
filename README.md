@@ -10,6 +10,12 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 TODO
 ----
 
+- Git-based versioning
+- SQLite indexes
+- Database consistency
+- Loading indicator on syncing
+- Add scrollback fetching
+- SSL cert popup
 - Hide input field when reading scrollback
 - Improved server event handling
 - Visual tweaking
