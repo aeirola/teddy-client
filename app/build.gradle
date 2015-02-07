@@ -2,13 +2,29 @@ apply plugin: 'com.android.application'
 apply plugin: 'play'
 apply plugin: "androidsvgdrawable"
 
+
+import org.ajoberstar.gradle.git.release.semver.NearestVersionLocator
+import org.ajoberstar.grgit.Grgit
+
+String getVersionName() {
+    def grgit = Grgit.open(project.file('..'))
+    def locator = new NearestVersionLocator()
+    def version = locator.locate(grgit)
+    return version.normal
+}
+
+String getVersionCode() {
+    def grgit = Grgit.open(project.file('..'))
+    return grgit.log().size()
+}
+
 android {
     signingConfigs {
         release {
-            storeFile file("../" + System.getenv("KEYSTORE_FILE"))
-            storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_NAME")
-            keyPassword System.getenv("KEY_PASSWORD")
+            storeFile file("../" + System.getenv("KEYSTORE_FILE") ?: "keys/signing_keystore.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias System.getenv("KEY_NAME") ?: ""
+            keyPassword System.getenv("KEY_PASSWORD") ?: ""
         }
     }
     compileSdkVersion 21
@@ -17,8 +33,8 @@ android {
         applicationId "fi.iki.aeirola.teddyclient"
         minSdkVersion 16
         targetSdkVersion 21
-        versionCode 1
-        versionName "1.0"
+        versionCode getVersionCode()
+        versionName getVersionName()
     }
     buildTypes {
         release {
@@ -42,7 +58,7 @@ android {
 
 play {
     serviceAccountEmail = System.getenv("ACCOUNT_NAME")
-    pk12File = file("../" + System.getenv("ACCOUNT_KEY_FILE"))
+    pk12File = file("../" + System.getenv("ACCOUNT_KEY_FILE") ?: "keys/google_play.p12")
     track = 'alpha'
 }
 
