@@ -24,7 +24,7 @@ String createVersionName() {
 }
 
 Properties localProperties = new Properties()
-File localPropertiesFile = project.rootProject.file('asfasdflocal.properties')
+File localPropertiesFile = project.rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.newDataInputStream())
 }
