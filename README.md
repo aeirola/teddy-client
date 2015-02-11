@@ -22,8 +22,6 @@ TODO
  - Transitions
  - Fonts
 - Improve connection handling
- - Disconnection
-  - On inactivity (~5min)
  - Network state detection
 
 ----- Release? -----

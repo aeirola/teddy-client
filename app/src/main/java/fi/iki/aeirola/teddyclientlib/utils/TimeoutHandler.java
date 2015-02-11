@@ -10,10 +10,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class TimeoutHandler {
 
+    private static ScheduledExecutorService worker;
+
     private final long timeout;
     private final TimeoutCallbackHandler timeoutCallback;
     private final TimeoutRunner timeoutRunner = new TimeoutRunner();
-    private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
+    private boolean enabled = true;
     private ScheduledFuture<?> timeoutFuture;
 
     public TimeoutHandler(long timeout, TimeoutCallbackHandler onTimeout) {
@@ -21,14 +23,21 @@ public class TimeoutHandler {
         this.timeoutCallback = onTimeout;
     }
 
+    private static ScheduledExecutorService getWorker() {
+        if (worker == null) {
+            worker = Executors.newSingleThreadScheduledExecutor();
+        }
+        return worker;
+    }
+
     public void set() {
-        if (timeoutFuture == null) {
-            timeoutFuture = worker.schedule(timeoutRunner, timeout, TimeUnit.MILLISECONDS);
+        if (enabled && timeoutFuture == null) {
+            timeoutFuture = getWorker().schedule(timeoutRunner, timeout, TimeUnit.MILLISECONDS);
         }
     }
 
     public void cancel() {
-        if (timeoutFuture != null) {
+        if (enabled && timeoutFuture != null) {
             timeoutFuture.cancel(false);
             timeoutFuture = null;
         }
@@ -37,6 +46,16 @@ public class TimeoutHandler {
     public void reset() {
         cancel();
         set();
+    }
+
+    public void disable() {
+        this.cancel();
+        this.enabled = false;
+    }
+
+    public void enable() {
+        this.enabled = true;
+        this.set();
     }
 
     public interface TimeoutCallbackHandler {

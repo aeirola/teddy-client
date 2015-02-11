@@ -46,6 +46,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     private static final String TAG = TeddyClient.class.getName();
     private static final int PING_TIMEOUT = 15000;
     private static final int REQUEST_TIMEOUT = 5000;
+    private static final int IDLE_TIMEOUT = 60000;
     private static final int RECONNECT_INTERVAL = 5000;
 
     private static TeddyClient instance;
@@ -55,6 +56,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     private final Set<Long> lineSyncs = new HashSet<>();
     private final TimeoutHandler pingTimeoutHandler;
     private final TimeoutHandler requestTimeoutHandler;
+    private final TimeoutHandler idleTimeoutHandler;
     private TeddyConnectionHandler mConnectionHandler;
     private String uri;
     private String password;
@@ -70,6 +72,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
 
         this.pingTimeoutHandler = new TimeoutHandler(PING_TIMEOUT, this);
         this.requestTimeoutHandler = new TimeoutHandler(REQUEST_TIMEOUT, this);
+        this.idleTimeoutHandler = new TimeoutHandler(IDLE_TIMEOUT, this);
     }
 
     protected TeddyClient(SharedPreferences sharedPref) {
@@ -368,11 +371,14 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
 
     public void subscribeLines(long viewId) {
         this.lineSyncs.add(viewId);
+        idleTimeoutHandler.disable();
+
         Request request = new Request();
         request.line = new LineRequest();
         request.line.sub_add = new LineRequest.Sub();
         request.line.sub_add.add = new LineRequest.Subscription();
         request.line.sub_add.add.view.add(viewId);
+
         this.send(request);
     }
 
@@ -383,6 +389,8 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         request.line.sub_rm.add = new LineRequest.Subscription();
         request.line.sub_rm.add.view.add(viewId);
         this.send(request);
+
+        idleTimeoutHandler.enable();
         this.lineSyncs.remove(viewId);
     }
 
@@ -399,6 +407,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     }
 
     protected void send(Request request, boolean waitForLogin) {
+        idleTimeoutHandler.reset();
         switch (this.connectionState) {
             case DISCONNECTED:
                 this.connect();
