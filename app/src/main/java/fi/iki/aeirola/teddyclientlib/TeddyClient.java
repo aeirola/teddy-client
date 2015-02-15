@@ -18,6 +18,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.KeyGenerator;
@@ -25,7 +26,7 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import fi.iki.aeirola.teddyclient.SettingsActivity;
+import fi.iki.aeirola.teddyclient.fragments.SettingsFragment;
 import fi.iki.aeirola.teddyclientlib.models.Line;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 import fi.iki.aeirola.teddyclientlib.models.request.InfoRequest;
@@ -41,7 +42,7 @@ import fi.iki.aeirola.teddyclientlib.utils.TimeoutHandler;
 /**
  * Created by aeirola on 14.10.2014.
  */
-public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
+public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = TeddyClient.class.getName();
     private static final int PING_TIMEOUT = 15000;
@@ -58,17 +59,18 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     private final TimeoutHandler requestTimeoutHandler;
     private final TimeoutHandler idleTimeoutHandler;
     private TeddyConnectionHandler mConnectionHandler;
-    private String uri;
+    private String url;
     private String password;
-    private String certFingerprint;
+    private String cert;
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
+    private ScheduledFuture<?> reconnectFuture;
 
-    protected TeddyClient(String uri, String password, String certFingerprint) {
-        this.uri = uri;
+    protected TeddyClient(String url, String password, String certFingerprint) {
+        this.url = url;
         this.password = password;
-        this.certFingerprint = certFingerprint;
+        this.cert = certFingerprint;
 
         this.pingTimeoutHandler = new TimeoutHandler(PING_TIMEOUT, this);
         this.requestTimeoutHandler = new TimeoutHandler(REQUEST_TIMEOUT, this);
@@ -76,13 +78,14 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     }
 
     protected TeddyClient(SharedPreferences sharedPref) {
-        this(sharedPref.getString(SettingsActivity.KEY_PREF_URI, ""),
-                sharedPref.getString(SettingsActivity.KEY_PREF_PASSWORD, ""),
-                sharedPref.getString(SettingsActivity.KEY_PREF_CERT_FINGERPRINT, ""));
+        this(sharedPref.getString(SettingsFragment.KEY_PREF_URL, ""),
+                sharedPref.getString(SettingsFragment.KEY_PREF_PASSWORD, ""),
+                sharedPref.getString(SettingsFragment.KEY_PREF_CERT, ""));
+        sharedPref.registerOnSharedPreferenceChangeListener(this);
     }
 
-    protected TeddyClient(String uri, String password) {
-        this(uri, password, null);
+    protected TeddyClient(String url, String password) {
+        this(url, password, null);
     }
 
 
@@ -96,36 +99,34 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         return instance;
     }
 
-    public static void updatePreferences(Context context) {
-        if (instance != null) {
-            Log.i(TAG, "Updating preferences");
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-            instance.uri = pref.getString(SettingsActivity.KEY_PREF_URI, "");
-            instance.password = pref.getString(SettingsActivity.KEY_PREF_PASSWORD, "");
-            instance.certFingerprint = pref.getString(SettingsActivity.KEY_PREF_CERT_FINGERPRINT, "");
-            instance.disconnect();
-        }
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.i(TAG, "Updating preferences");
+        instance.url = sharedPreferences.getString(SettingsFragment.KEY_PREF_URL, "");
+        instance.password = sharedPreferences.getString(SettingsFragment.KEY_PREF_PASSWORD, "");
+        instance.cert = sharedPreferences.getString(SettingsFragment.KEY_PREF_CERT, "");
+        instance.disconnect();
     }
 
-    public void connect() {
+    protected void connect() {
         if (this.connectionState != State.DISCONNECTED) {
             return;
         }
 
-        if (this.uri == null) {
-            Log.w(TAG, "Uri not configured, not connecting");
+        if (this.url == null) {
+            Log.w(TAG, "Url not configured, not connecting");
             return;
         }
 
-        Log.d(TAG, "Connecting to " + this.uri);
+        Log.d(TAG, "Connecting to " + this.url);
         this.connectionState = State.CONNECTING;
-        this.mConnectionHandler = new TeddyConnectionHandler(this.uri, this.certFingerprint, this);
+        this.mConnectionHandler = new TeddyConnectionHandler(this.url, this.cert, this);
         this.mConnectionHandler.connect();
     }
 
-    public void reconnect() {
-        Log.d(TAG, "Reconnecting to " + this.uri);
-        this.mConnectionHandler = new TeddyConnectionHandler(this.uri, this.certFingerprint, this);
+    protected void reconnect() {
+        Log.d(TAG, "Reconnecting to " + this.url);
+        this.mConnectionHandler = new TeddyConnectionHandler(this.url, this.cert, this);
         this.mConnectionHandler.connect();
     }
 
@@ -152,7 +153,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         onDisconnect();
     }
 
-    public void disconnect() {
+    protected void disconnect() {
         Log.d(TAG, "Disconnecting");
         this.lineSyncs.clear();
         this.messageQueue.clear();
@@ -165,22 +166,27 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
     protected void onDisconnect() {
         Log.d(TAG, "Disconnected");
 
+        pingTimeoutHandler.cancel();
+        idleTimeoutHandler.cancel();
+        requestTimeoutHandler.cancel();
+
         if (this.connectionState == State.CONNECTING || this.connectionState == State.RECONNECTING) {
+            if (reconnectFuture != null && !reconnectFuture.isDone()) {
+                return;
+            }
             // Retry connection in half a second
-            worker.schedule(new Runnable() {
+            reconnectFuture = worker.schedule(new Runnable() {
                 @Override
                 public void run() {
                     reconnect();
                 }
             }, RECONNECT_INTERVAL, TimeUnit.MILLISECONDS);
-            return;
         }
 
         if (!this.lineSyncs.isEmpty() || !this.messageQueue.isEmpty()) {
             // Reconnect if there is something going on
             this.connectionState = State.RECONNECTING;
             this.reconnect();
-            return;
         }
 
         this.connectionState = State.DISCONNECTED;
@@ -189,7 +195,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler {
         }
     }
 
-    public void onMessage(Response response) {
+    void onMessage(Response response) {
         requestTimeoutHandler.cancel();
 
         if (response.challenge != null) {

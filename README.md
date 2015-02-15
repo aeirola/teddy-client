@@ -14,7 +14,6 @@ TODO
 - Database consistency
 - Loading indicator on syncing
 - Add scrollback fetching
-- SSL cert popup
 - Hide input field when reading scrollback
 - Improved server event handling
 - Visual tweaking
@@ -39,7 +38,6 @@ TODO
 
 Component architecture
 ----------------------
-
 
  - UI Layer
   - Shows data in lists and such

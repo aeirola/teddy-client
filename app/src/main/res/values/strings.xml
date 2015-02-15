@@ -5,10 +5,13 @@
     <string name="title_window_detail">Window Detail</string>
     <string name="action_settings">Settings</string>
     <string name="pref_header_connection">Connection</string>
-    <string name="pref_title_uri">Hostname</string>
-    <string name="pref_default_uri">ws://localhost:8080/endpoint</string>
+    <string name="pref_title_url">URL</string>
+    <string name="pref_default_url">ws://localhost:8080/endpoint</string>
     <string name="pref_title_password">Password</string>
-    <string name="pref_title_cert_fingerprint">Cert fingerprint</string>
+    <string name="pref_title_cert">Trusted certificate</string>
+    <string name="pref_cert_download">Download</string>
+    <string name="pref_cert_clear">Clear</string>
+    <string name="pref_cert_warning">Only download on a trusted network.</string>
     <string name="title_activity_settings">Settings</string>
 
 </resources>

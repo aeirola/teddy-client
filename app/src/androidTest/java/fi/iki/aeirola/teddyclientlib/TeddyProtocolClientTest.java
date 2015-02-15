@@ -17,7 +17,7 @@ import fi.iki.aeirola.teddyclientlib.models.Window;
 public class TeddyProtocolClientTest extends TestCase {
     private static final int TIMEOUT = 5000;
 
-    private String uri;
+    private String url;
     private TestServer server;
 
     private CountDownLatch testLatch;
@@ -34,7 +34,7 @@ public class TeddyProtocolClientTest extends TestCase {
         // Wait for server to start
         Thread.sleep(100);
 
-        this.uri = "ws://localhost:8080/teddy";
+        this.url = "ws://localhost:8080/teddy";
         this.testLatch = new CountDownLatch(1);
     }
 
@@ -44,7 +44,7 @@ public class TeddyProtocolClientTest extends TestCase {
     }
 
     protected void runTest(TeddyCallbackHandler callbackHandler) throws InterruptedException {
-        teddyProtocol = new TeddyClient(this.uri, "s3cr3t");
+        teddyProtocol = new TeddyClient(this.url, "s3cr3t");
         teddyProtocol.registerCallbackHandler(callbackHandler, "testHandler");
 
         teddyProtocol.connect();
