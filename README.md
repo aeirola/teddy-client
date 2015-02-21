@@ -10,7 +10,6 @@ Currently based on the Autobahn|Android WebSocket client library and the Jackson
 TODO
 ----
 
-- SQLite indexes
 - Database consistency
 - Add scrollback fetching
 - Hide input field when reading scrollback

@@ -19,15 +19,19 @@ final class ContentCacheDatabaseHelper extends SQLiteOpenHelper {
             {
                     "CREATE TABLE windows (" +
                             TeddyContract.Windows._ID + " INT PRIMARY KEY, " +
-                            TeddyContract.Windows.VIEW_ID + " INT, " +
+                            TeddyContract.Windows.VIEW_ID + " INT NOT NULL, " +
                             TeddyContract.Windows.NAME + " TEXT, " +
                             TeddyContract.Windows.ACTIVITY + " TEXT" +
                             ")",
                     "CREATE TABLE lines(" +
                             TeddyContract.Lines._ID + " INT PRIMARY KEY, " +
-                            TeddyContract.Lines.VIEW_ID + " INT, " +
+                            TeddyContract.Lines.VIEW_ID + " INT NOT NULL, " +
                             TeddyContract.Lines.MESSAGE + " TEXT, " +
                             TeddyContract.Lines.TIMESTAMP + " TEXT" +
+                            ")",
+                    "CREATE INDEX lineIndex ON lines (" +
+                            TeddyContract.Lines.VIEW_ID + " , " +
+                            TeddyContract.Lines.TIMESTAMP + " DESC" +
                             ")"
             }
     };
