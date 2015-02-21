@@ -179,6 +179,7 @@ class TestServerCallbackHandler implements AsyncHttpServer.WebSocketRequestCallb
 
     public void onMessage(Request request) {
         Response response = new Response();
+        response.id = request.id;
         if (request.challenge != null) {
             response.challenge = "test-server-challenge";
         }

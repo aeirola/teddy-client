@@ -70,11 +70,13 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     }
 
     public void close() {
+        teddyClient = null;
+
         if (this.webSocket != null && this.webSocket.isOpen()) {
             this.webSocket.close();
         }
 
-        teddyClient = null;
+        this.webSocket = null;
     }
 
     public void send(Object jsonObject) {

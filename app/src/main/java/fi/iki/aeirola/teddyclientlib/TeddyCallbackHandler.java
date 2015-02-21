@@ -27,4 +27,10 @@ public abstract class TeddyCallbackHandler {
 
     public void onNewLines(List<Line> lineList) {
     }
+
+    public void onPendingRequests() {
+    }
+
+    public void onNoPendingRequests() {
+    }
 }

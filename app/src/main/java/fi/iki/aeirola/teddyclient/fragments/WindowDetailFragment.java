@@ -17,11 +17,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import fi.iki.aeirola.teddyclient.R;
 import fi.iki.aeirola.teddyclient.provider.TeddyContract;
 import fi.iki.aeirola.teddyclient.views.adapters.IrssiLineAdapter;
+import fi.iki.aeirola.teddyclientlib.TeddyCallbackHandler;
+import fi.iki.aeirola.teddyclientlib.TeddyClient;
 import fi.iki.aeirola.teddyclientlib.models.Window;
 
 /**
@@ -41,6 +44,8 @@ public class WindowDetailFragment extends ListFragment {
     private IrssiLineAdapter dataAdapter;
     private long windowId = 0;
     private long viewId = 0;
+    private TeddyClient teddyClient;
+    private ProgressBar loadingInidicator;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -55,6 +60,8 @@ public class WindowDetailFragment extends ListFragment {
 
         this.dataAdapter = new IrssiLineAdapter(getActivity(), null);
         setListAdapter(this.dataAdapter);
+
+        this.teddyClient = TeddyClient.getInstance(this.getActivity());
     }
 
     private void resetWindowActivity(long windowId) {
@@ -87,6 +94,7 @@ public class WindowDetailFragment extends ListFragment {
         super.onViewCreated(view, savedInstanceState);
 
         // TODO: Fetch more line when reaching end of list
+        loadingInidicator = (ProgressBar) getActivity().findViewById(R.id.progressBar);
 
         mEditText = (EditText) getActivity().findViewById(R.id.window_detail_input);
         if (mEditText == null) {
@@ -112,6 +120,19 @@ public class WindowDetailFragment extends ListFragment {
         if (viewId != 0) {
             getLoaderManager().restartLoader(LinesLoaderCallback.LOADER_ID, null, new LinesLoaderCallback());
         }
+
+        loadingInidicator.setVisibility(View.VISIBLE);
+        this.teddyClient.registerCallbackHandler(new TeddyCallbackHandler() {
+            @Override
+            public void onNoPendingRequests() {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        loadingInidicator.setVisibility(View.GONE);
+                    }
+                });
+            }
+        }, TAG);
     }
 
     @Override
@@ -119,6 +140,8 @@ public class WindowDetailFragment extends ListFragment {
         super.onStop();
 
         getActivity().getContentResolver().call(TeddyContract.Lines.CONTENT_URI, TeddyContract.Lines.UNSYNC, String.valueOf(viewId), null);
+
+        this.teddyClient.removeCallBackHandler(TAG);
     }
 
     private void sendMessage() {

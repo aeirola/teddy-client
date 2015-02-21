@@ -17,8 +17,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.KeyGenerator;
@@ -37,6 +37,7 @@ import fi.iki.aeirola.teddyclientlib.models.request.Request;
 import fi.iki.aeirola.teddyclientlib.models.request.WindowRequest;
 import fi.iki.aeirola.teddyclientlib.models.response.LineResponse;
 import fi.iki.aeirola.teddyclientlib.models.response.Response;
+import fi.iki.aeirola.teddyclientlib.utils.IdGenerator;
 import fi.iki.aeirola.teddyclientlib.utils.TimeoutHandler;
 
 /**
@@ -65,7 +66,9 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
     private String clientChallengeString;
     private String serverChallengeString;
     private State connectionState = State.DISCONNECTED;
-    private ScheduledFuture<?> reconnectFuture;
+    private Future<?> reconnectFuture;
+    private Set<Long> pendingRequests = new HashSet<>();
+    private IdGenerator idGenerator = new IdGenerator();
 
     protected TeddyClient(String url, String password, String certFingerprint) {
         this.url = url;
@@ -170,6 +173,10 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
         idleTimeoutHandler.cancel();
         requestTimeoutHandler.cancel();
 
+        // Clear pending requests
+        pendingRequests.clear();
+        notifyPendingRequests();
+
         if (this.connectionState == State.CONNECTING || this.connectionState == State.RECONNECTING) {
             if (reconnectFuture != null && !reconnectFuture.isDone()) {
                 return;
@@ -197,6 +204,8 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
 
     void onMessage(Response response) {
         requestTimeoutHandler.cancel();
+        pendingRequests.remove(response.id);
+        notifyPendingRequests();
 
         if (response.challenge != null) {
             this.onChallenge((response.challenge));
@@ -413,7 +422,16 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
     }
 
     protected void send(Request request, boolean waitForLogin) {
+        if (request.expectResponse()) {
+            if (request.id == null) {
+                request.id = idGenerator.get();
+            }
+            pendingRequests.add(request.id);
+            notifyPendingRequests();
+        }
+
         idleTimeoutHandler.reset();
+
         switch (this.connectionState) {
             case DISCONNECTED:
                 this.connect();
@@ -441,6 +459,19 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
             requestTimeoutHandler.set();
         }
         this.mConnectionHandler.send(request);
+    }
+
+    private void notifyPendingRequests() {
+        Log.v(TAG, "Pending requests " + this.pendingRequests.size());
+        if (this.pendingRequests.isEmpty()) {
+            for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+                callbackHandler.onNoPendingRequests();
+            }
+        } else {
+            for (TeddyCallbackHandler callbackHandler : this.callbackHandlers.values()) {
+                callbackHandler.onPendingRequests();
+            }
+        }
     }
 
     private String generateClientChallenge() {

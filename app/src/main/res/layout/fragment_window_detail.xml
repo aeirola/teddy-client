@@ -15,6 +15,15 @@
         android:transcriptMode="normal"
         tools:context=".WindowDetailFragment" />
 
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:indeterminate="true"
+        android:indeterminateOnly="true" />
+
     <EditText
         android:id="@+id/window_detail_input"
         android:layout_width="match_parent"
