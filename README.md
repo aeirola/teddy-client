@@ -12,7 +12,6 @@ TODO
 
 - SQLite indexes
 - Database consistency
-- Loading indicator on syncing
 - Add scrollback fetching
 - Hide input field when reading scrollback
 - Improved server event handling
