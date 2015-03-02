@@ -13,6 +13,6 @@ public class TeddyApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        TeddyToaster.init(getApplicationContext());
+        TeddyToaster.init(this);
     }
 }

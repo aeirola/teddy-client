@@ -3,5 +3,5 @@
     android:id="@+id/window_detail_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".WindowDetailActivity"
+    tools:application=".WindowDetailActivity"
     tools:ignore="MergeRootFrame" />

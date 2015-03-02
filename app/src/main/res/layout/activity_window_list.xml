@@ -4,5 +4,5 @@
     android:name="fi.iki.aeirola.teddyclient.fragments.WindowListFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".WindowListActivity"
+    tools:application=".WindowListActivity"
     tools:layout="@android:layout/list_content" />

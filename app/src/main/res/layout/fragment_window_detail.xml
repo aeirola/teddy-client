@@ -13,7 +13,7 @@
         android:stackFromBottom="true"
         android:textIsSelectable="true"
         android:transcriptMode="normal"
-        tools:context=".WindowDetailFragment" />
+        tools:application=".WindowDetailFragment" />
 
     <ProgressBar
         android:id="@+id/progressBar"
