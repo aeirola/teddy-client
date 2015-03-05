@@ -49,7 +49,7 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
     private static final int PING_TIMEOUT = 15000;
     private static final int REQUEST_TIMEOUT = 5000;
     private static final int IDLE_TIMEOUT = 60000;
-    private static final int RECONNECT_INTERVAL = 5000;
+    private static final int RECONNECT_INTERVAL = 1000;
 
     private static TeddyClient instance;
     private final Queue<Request> messageQueue = new ArrayDeque<>();
@@ -181,13 +181,14 @@ public class TeddyClient implements TimeoutHandler.TimeoutCallbackHandler, Share
             if (reconnectFuture != null && !reconnectFuture.isDone()) {
                 return;
             }
-            // Retry connection in half a second
+            // Retry connection in a moment
             reconnectFuture = worker.schedule(new Runnable() {
                 @Override
                 public void run() {
                     reconnect();
                 }
             }, RECONNECT_INTERVAL, TimeUnit.MILLISECONDS);
+            return;
         }
 
         if (!this.lineSyncs.isEmpty() || !this.messageQueue.isEmpty()) {

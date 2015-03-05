@@ -26,7 +26,7 @@ import fi.iki.aeirola.teddyclientlib.utils.SSLCertHelper;
 /**
  * Created by Axel on 26.10.2014.
  */
-class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, WebSocket.PongCallback, CompletedCallback, DataCallback {
+class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, CompletedCallback, DataCallback {
     private static final String TAG = TeddyConnectionHandler.class.getName();
 
     private final String url;
@@ -72,11 +72,11 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     public void close() {
         teddyClient = null;
 
-        if (this.webSocket != null && this.webSocket.isOpen()) {
+        if (this.webSocket != null) {
             this.webSocket.close();
+            this.webSocket = null;
         }
 
-        this.webSocket = null;
     }
 
     public void send(Object jsonObject) {
@@ -95,26 +95,38 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
 
     @Override
     public void onCompleted(Exception ex, WebSocket webSocket) {
+        /*
+         * Called when connection is opened, unless exception is present
+         */
         if (ex != null) {
             this.onCompleted(ex);
-        } else {
-            this.webSocket = webSocket;
-            if (webSocket != null) {
-                webSocket.setStringCallback(this);
-                webSocket.setDataCallback(this);
-                webSocket.setPongCallback(this);
-                webSocket.setClosedCallback(this);
-            }
-
-            Log.v(TAG, "Connected!");
-            if (teddyClient != null) {
-                teddyClient.onConnect();
-            }
+            return;
         }
+
+        if (webSocket == null) {
+            this.onCompleted(null);
+            return;
+        }
+
+        if (teddyClient == null) {
+            this.close();
+            return;
+        }
+
+        this.webSocket = webSocket;
+        webSocket.setStringCallback(this);
+        webSocket.setDataCallback(this);
+        webSocket.setClosedCallback(this);
+
+        Log.v(TAG, "Connected!");
+        teddyClient.onConnect();
     }
 
     @Override
     public void onCompleted(Exception ex) {
+        /*
+         * Called when connection is closed
+         */
         if (ex != null) {
             Log.w(TAG, ex.toString());
         } else {
@@ -122,14 +134,13 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
         }
 
         if (this.webSocket != null) {
-            if (this.webSocket.isOpen()) {
-                this.webSocket.close();
-            }
+            this.webSocket.close();
             this.webSocket = null;
         }
 
         if (teddyClient != null) {
             teddyClient.onDisconnect();
+            teddyClient = null;
         }
     }
 
@@ -173,10 +184,4 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             teddyClient.onMessage(response);
         }
     }
-
-    @Override
-    public void onPongReceived(String s) {
-        Log.v(TAG, "Pong received " + s);
-    }
-
 }
