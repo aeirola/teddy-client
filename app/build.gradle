@@ -3,6 +3,7 @@ apply plugin: 'play'
 apply plugin: "androidsvgdrawable"
 
 
+import fr.avianey.androidsvgdrawable.gradle.SvgDrawableTask
 import org.ajoberstar.gradle.git.release.semver.NearestVersionLocator
 import org.ajoberstar.grgit.Grgit
 
@@ -38,12 +39,12 @@ android {
             keyPassword System.getenv("KEY_PASSWORD") ?: localProperties.get("keyPassword", "")
         }
     }
-    compileSdkVersion 21
-    buildToolsVersion '21.1.2'
+    compileSdkVersion 23
+    buildToolsVersion '23.0.2'
     defaultConfig {
         applicationId "fi.iki.aeirola.teddyclient"
         minSdkVersion 16
-        targetSdkVersion 21
+        targetSdkVersion 23
         versionCode createVersionCode()
         versionName createVersionName()
     }
@@ -55,6 +56,8 @@ android {
             signingConfig signingConfigs.release
         }
         debug {
+            minifyEnabled false
+            shrinkResources false
         }
     }
     compileOptions {
@@ -79,7 +82,7 @@ dependencies {
     androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
 }
 
-task generateResImages(type: fr.avianey.androidsvgdrawable.gradle.SvgDrawableTask) {
+task generateResImages(type: SvgDrawableTask) {
     from = file('src/main/svg/res')
     to = file('src/main/res')
     createMissingDirectories = true
@@ -99,7 +102,7 @@ task generateResImages(type: fr.avianey.androidsvgdrawable.gradle.SvgDrawableTas
     }
 }
 
-task generatePlayImages(type: fr.avianey.androidsvgdrawable.gradle.SvgDrawableTask) {
+task generatePlayImages(type: SvgDrawableTask) {
     from = file('src/main/svg/play')
     to = file('src/main/play/en-GB/listing')
     createMissingDirectories = true

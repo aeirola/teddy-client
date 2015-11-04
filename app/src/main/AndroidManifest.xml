@@ -8,6 +8,7 @@
     <application
         android:name=".TeddyApplication"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backupscheme"
         android:icon="@drawable/ic_launcher_teddy"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
@@ -41,7 +42,7 @@
             android:name="fi.iki.aeirola.teddyclient.provider.TeddyContentProvider"
             android:authorities="fi.iki.aeirola.teddyclient.provider"
             android:enabled="true"
-            android:exported="false"></provider>
+            android:exported="false"/>
     </application>
 
 </manifest>
