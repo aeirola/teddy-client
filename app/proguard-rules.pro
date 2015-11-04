@@ -22,5 +22,8 @@
 # Jackson is referencing some unused classes
 -dontwarn com.fasterxml.jackson.databind.**
 
+# AndroidAsyn is referencing some unused classes
+-dontwarn com.koushikdutta.async.http.**
+
 # Some data model classes rely on reflection, need to explicitly keep them
 -keep public class fi.iki.aeirola.teddyclientlib.models.**
