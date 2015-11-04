@@ -6,15 +6,23 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.spdy.SpdyMiddleware;
 
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.util.Arrays;
+import java.util.Comparator;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -24,6 +32,8 @@ import fi.iki.aeirola.teddyclientlib.utils.SSLCertHelper;
 
 
 /**
+ * Handler for connections to the Teddy server instance. Wraps around the Android async WebSocket client.
+ *
  * Created by Axel on 26.10.2014.
  */
 class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback, WebSocket.StringCallback, CompletedCallback, DataCallback {
@@ -31,12 +41,15 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
 
     private final String url;
     private final ObjectMapper mObjectMapper = new ObjectMapper();
+    private final AsyncHttpClient asyncClient;
     public WebSocket webSocket;
     private TeddyClient teddyClient;
 
     public TeddyConnectionHandler(String url, String cert, TeddyClient teddyClient) {
         this.teddyClient = teddyClient;
         this.url = url;
+        // The teddy server seems to prefer ipv4, so we'll do the same.
+        this.asyncClient = new AsyncHttpClient(new Ipv4AsyncServer());
 
         this.mObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.mObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
@@ -56,7 +69,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
             SSLContext context = SSLContext.getInstance("TLS");
             context.init(null, trustManagers, null);
 
-            SpdyMiddleware middleware = AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware();
+            SpdyMiddleware middleware = this.asyncClient.getSSLSocketMiddleware();
             middleware.setSSLContext(context);
             middleware.setTrustManagers(trustManagers);
 
@@ -66,7 +79,7 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
     }
 
     public void connect() {
-        AsyncHttpClient.getDefaultInstance().websocket(this.url, "teddy-nu", this);
+        this.asyncClient.websocket(this.url, "teddy-nu", this);
     }
 
     public void close() {
@@ -182,6 +195,39 @@ class TeddyConnectionHandler implements AsyncHttpClient.WebSocketConnectCallback
 
         if (teddyClient != null) {
             teddyClient.onMessage(response);
+        }
+    }
+
+    /**
+     * Modified version of @AsyncServer that prefers IPv4 addresses over IPv6 addresses.
+     */
+    private class Ipv4AsyncServer extends AsyncServer {
+        /**
+         * Resolves all addresses for host, sorted by address version.
+         *
+         * @param host Hostname to resolve
+         * @return Array of resolved addresses, with IPv4 addresses on top
+         */
+        @Override
+        public Future<InetAddress[]> getAllByName(final String host) {
+            return super.getAllByName(host).then(new TransformFuture<InetAddress[], InetAddress[]>() {
+                @Override
+                protected void transform(InetAddress[] result) throws Exception {
+                    Arrays.sort(result, new Comparator<InetAddress>() {
+                        @Override
+                        public int compare(InetAddress lhs, InetAddress rhs) {
+                            if (lhs instanceof Inet4Address && rhs instanceof Inet6Address) {
+                                return -1;
+                            } else if (lhs instanceof Inet6Address && rhs instanceof Inet4Address) {
+                                return 1;
+                            } else {
+                                return 0;
+                            }
+                        }
+                    });
+                    setComplete(result);
+                }
+            });
         }
     }
 }
